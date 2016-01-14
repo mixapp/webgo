@@ -21,6 +21,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var vc reflect.Value
 
+	ctx:= Context{Response:w, Request:r}
+
+
 	// Определем контроллер по прямому вхождению
 	if route, ok := a.router.routes[path]; ok {
 		vc = reflect.New(route.Controller)
@@ -43,7 +46,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Инициализация контекста
-	Controller.Init()
+	Controller.Init(&ctx)
 
 	// Запуск предобработчика
 	Controller.Prepare()
