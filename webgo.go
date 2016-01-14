@@ -16,12 +16,17 @@ func init(){
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var vc reflect.Value
+
 	method := r.Method
 	path := r.URL.Path
 
-	var vc reflect.Value
-
 	ctx:= Context{Response:w, Request:r}
+	if (len(path)>1 && path[len(path)-1:] == "/") {
+		http.Redirect(w,r, path[:len(path) - 1], 301)
+		return
+	}
+
 
 
 	// Определем контроллер по прямому вхождению
@@ -50,6 +55,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск предобработчика
 	Controller.Prepare()
+
+	// Запуск цепочки middleware
+	// TODO: Реализовать запуск middleware
 
 	// Запуск Экшена
 	in := make([]reflect.Value, 0)
