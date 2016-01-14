@@ -17,6 +17,7 @@ func init(){
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var vc reflect.Value
+	var Action reflect.Value
 
 	method := r.Method
 	path := r.URL.Path
@@ -27,11 +28,10 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-
 	// Определем контроллер по прямому вхождению
 	if route, ok := a.router.routes[path]; ok {
 		vc = reflect.New(route.Controller)
+		Action = vc.MethodByName(route.Action)
 	} else {
 		// Определяем контроллер по совпадениям
 		route := a.router.Match(method,path)
@@ -41,6 +41,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return;
 		} else {
 			vc = reflect.New(route.Controller)
+			Action = vc.MethodByName(route.Action)
 		}
 	}
 
@@ -61,7 +62,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск Экшена
 	in := make([]reflect.Value, 0)
-	Action := vc.MethodByName("Index")
 	Action.Call(in)
 
 	// Запуск постобработчика
