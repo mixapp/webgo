@@ -1,3 +1,7 @@
+# WebGo
+MVC framework
+
+---
 ### TODO
 1. Добавить middleware
 2. Добавить Modules
