@@ -20,12 +20,14 @@ type (
 
 		GetHeader (key string) string
 		SetHeader (key string, val string)
+		SetStatusCode(code int)
 
 		Redirect(location string, code int)
 
 		Render(tpl_name string, data interface{})
 		Json(data interface{})
 		Plain(data string)
+
 
 	}
 )
@@ -45,6 +47,9 @@ func (c Controller) GetHeader(key string)string {
 func (c Controller) SetHeader(key string, val string) {
 	c.Ctx.Response.Header().Set(key, val)
 }
+func (c *Controller) SetStatusCode (code int) {
+	c.Ctx.statusCode = code
+}
 
 func (c Controller) Redirect (location string, code int) {
 	http.Redirect(c.Ctx.Response,c.Ctx.Request, location, code)
@@ -52,6 +57,11 @@ func (c Controller) Redirect (location string, code int) {
 
 func (c Controller) Render (tpl_name string, data interface{}) {
 	var err error
+
+	if c.Ctx.statusCode != 0 {
+		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
+	}
+
 	c.Ctx.Response.Header().Set("Content-Type", "text/html")
 	var tpl = template.Must(template.ParseGlob("templates/*"))
 	bytes := bytes.NewBufferString("")
@@ -64,6 +74,9 @@ func (c Controller) Render (tpl_name string, data interface{}) {
 	c.Ctx.Response.Write(c.Ctx.body)
 }
 func (c Controller) Json (data interface{}) {
+	if c.Ctx.statusCode != 0 {
+		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
+	}
 	c.Ctx.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	var content []byte
 	content, err := json.Marshal(data)
@@ -85,6 +98,9 @@ func (c Controller) Json (data interface{}) {
 	c.Ctx.Response.Write([]byte(jsons))
 }
 func (c Controller) Plain (data string) {
+	if c.Ctx.statusCode != 0 {
+		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
+	}
 	c.Ctx.Response.Header().Set("Content-Type", "text/plain")
 	c.Ctx.Response.Write([]byte(data))
 }
