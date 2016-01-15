@@ -6,6 +6,7 @@ import (
 
 type App struct {
 	router Router
+	definitions Definitions
 }
 
 var app App
@@ -13,11 +14,13 @@ var app App
 func init(){
 	app = App{}
 	app.router = Router{make(Routes)}
+	app.definitions = Definitions{}
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var vc reflect.Value
 	var Action reflect.Value
+	var middlewareGroup string
 
 	method := r.Method
 	path := r.URL.Path
@@ -32,6 +35,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if route, ok := a.router.routes[path]; ok {
 		vc = reflect.New(route.Controller)
 		Action = vc.MethodByName(route.Action)
+		middlewareGroup = route.MiddlewareGroup
 	} else {
 		// Определяем контроллер по совпадениям
 		route := a.router.Match(method,path)
@@ -42,6 +46,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			vc = reflect.New(route.Controller)
 			Action = vc.MethodByName(route.Action)
+			middlewareGroup = route.MiddlewareGroup
 		}
 	}
 
@@ -58,7 +63,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Controller.Prepare()
 
 	// Запуск цепочки middleware
-	// TODO: Реализовать запуск middleware
+	if middlewareGroup != "" {
+		isNext := app.definitions.Run(middlewareGroup,&ctx)
+		if !isNext {
+			return
+		}
+	}
 
 	// Запуск Экшена
 	in := make([]reflect.Value, 0)
@@ -68,21 +78,27 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Controller.Finish()
 }
 
+func RegisterMiddleware(name string, plugins ...MiddlewareInterface)  {
+	for _, plugin:= range plugins {
+		app.definitions.Register(name, plugin)
+	}
 
-func Get(url string, controller ControllerInterface, middleware []string, flags []string, action string) {
-	app.router.addRoute("GET", url, controller, action)
 }
-func Post(url string, controller ControllerInterface, middleware []string, flags []string, action string) {
-	app.router.addRoute("POST", url, controller, action)
+
+func Get(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+	app.router.addRoute("GET", url, controller, action, middlewareGroup)
 }
-func Put(url string, controller ControllerInterface, middleware []string, flags []string, action string) {
-	app.router.addRoute("PUT", url, controller, action)
+func Post(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+	app.router.addRoute("POST", url, controller, action, middlewareGroup)
 }
-func Delete(url string, controller ControllerInterface, middleware []string, flags []string, action string) {
-	app.router.addRoute("DELETE", url, controller, action)
+func Put(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+	app.router.addRoute("PUT", url, controller, action, middlewareGroup)
 }
-func Options(url string, controller ControllerInterface, middleware []string, flags []string, action string)  {
-	app.router.addRoute("OPTIONS", url, controller, action)
+func Delete(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+	app.router.addRoute("DELETE", url, controller, action, middlewareGroup)
+}
+func Options(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string)  {
+	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
 }
 
 func Run(port string)  {
