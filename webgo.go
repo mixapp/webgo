@@ -7,19 +7,32 @@ import (
 	"io/ioutil"
 	"io"
 	"encoding/json"
+	"html/template"
+	"path/filepath"
+	"os"
+	"strings"
 )
 
 type App struct {
 	router Router
 	definitions Definitions
+	templates *template.Template
 }
 
 var app App
 
 func init(){
+	templates := template.New("template")
+	filepath.Walk("templates", func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, ".html") {
+			templates.ParseFiles(path)
+		}
+		return nil
+	})
 	app = App{}
 	app.router = Router{make(Routes)}
 	app.definitions = Definitions{}
+	app.templates = templates
 }
 
 func parseBody(ctx *Context) (err error) {
@@ -40,66 +53,66 @@ func parseBody(ctx *Context) (err error) {
 	ctx.ContentType = contentType
 
 	switch contentType {
-		case "application/json":
-			body, err = ioutil.ReadAll(ctx.Request.Body)
-			if err != nil {
-				http.Error(ctx.Response, "", 400)
-				return
-			}
-
-			var data interface{}
-			err = json.Unmarshal(body, &data)
-			if err != nil {
-				http.Error(ctx.Response, "", 400)
-				return
-			}
-			ctx._Body = body
-			ctx.Body = data.(map[string]interface{})
-
-			return
-
-		case "application/x-www-form-urlencoded":
-			// TODO Может быть проблема с чтением пустого запроса EOF
-			var reader io.Reader = ctx.Request.Body
-			var values url.Values
-
-			maxFormSize := int64(10 << 20)
-			reader = io.LimitReader(ctx.Request.Body, maxFormSize+1)
-
-			body, err = ioutil.ReadAll(reader)
-			if err != nil {
-				http.Error(ctx.Response, "", 400)
-				return
-			}
-
-			if int64(len(body)) > maxFormSize {
-				http.Error(ctx.Response, "", 413)
-				err = errors.New("Request Entity Too Large")
-				return
-			}
-
-			values, err = url.ParseQuery(string(body))
-
-			if err != nil{
-				http.Error(ctx.Response, "", 400)
-				return
-			}
-
-			for i := range values{
-				if len(values[i]) == 1{
-					ctx.Body[i] = values[i][0]
-				} else {
-					ctx.Body[i] = values[i]
-				}
-			}
-			ctx._Body = body
-			return
-		case "multipart/form-data":
-			return
-		default:
-			err = errors.New("Bad Request")
+	case "application/json":
+		body, err = ioutil.ReadAll(ctx.Request.Body)
+		if err != nil {
 			http.Error(ctx.Response, "", 400)
 			return
+		}
+
+		var data interface{}
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			http.Error(ctx.Response, "", 400)
+			return
+		}
+		ctx._Body = body
+		ctx.Body = data.(map[string]interface{})
+
+		return
+
+	case "application/x-www-form-urlencoded":
+		// TODO Может быть проблема с чтением пустого запроса EOF
+		var reader io.Reader = ctx.Request.Body
+		var values url.Values
+
+		maxFormSize := int64(10 << 20)
+		reader = io.LimitReader(ctx.Request.Body, maxFormSize+1)
+
+		body, err = ioutil.ReadAll(reader)
+		if err != nil {
+			http.Error(ctx.Response, "", 400)
+			return
+		}
+
+		if int64(len(body)) > maxFormSize {
+			http.Error(ctx.Response, "", 413)
+			err = errors.New("Request Entity Too Large")
+			return
+		}
+
+		values, err = url.ParseQuery(string(body))
+
+		if err != nil{
+			http.Error(ctx.Response, "", 400)
+			return
+		}
+
+		for i := range values{
+			if len(values[i]) == 1{
+				ctx.Body[i] = values[i][0]
+			} else {
+				ctx.Body[i] = values[i]
+			}
+		}
+		ctx._Body = body
+		return
+	case "multipart/form-data":
+		return
+	default:
+		err = errors.New("Bad Request")
+		http.Error(ctx.Response, "", 400)
+		return
 	}
 
 	return err

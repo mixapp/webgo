@@ -3,7 +3,6 @@ import (
 	"net/http"
 	"encoding/json"
 	"strconv"
-	"html/template"
 	"bytes"
 	"io/ioutil"
 )
@@ -62,15 +61,23 @@ func (c Controller) Render (tpl_name string, data interface{}) {
 		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
 	}
 
-	c.Ctx.Response.Header().Set("Content-Type", "text/html")
-	var tpl = template.Must(template.ParseGlob("templates/*"))
 	bytes := bytes.NewBufferString("")
-	tpl.ExecuteTemplate(bytes, tpl_name+".html", data)
-
-	c.Ctx.body, err = ioutil.ReadAll(bytes)
+	err = app.templates.ExecuteTemplate(bytes, tpl_name+".html", data)
 	if err != nil {
 		// TODO: Обработать ошибку
 	}
+	c.Ctx.body, err = ioutil.ReadAll(bytes)
+
+
+	//	c.Ctx.Response.Header().Set("Content-Type", "text/html")
+	//	var tpl = template.Must(template.ParseGlob("templates/*"))
+	//	bytes := bytes.NewBufferString("")
+	//	tpl.ExecuteTemplate(bytes, tpl_name+".html", data)
+	//
+	//	c.Ctx.body, err = ioutil.ReadAll(bytes)
+	//	if err != nil {
+	//		// TODO: Обработать ошибку
+	//	}
 	c.Ctx.Response.Write(c.Ctx.body)
 }
 func (c Controller) Json (data interface{}) {
