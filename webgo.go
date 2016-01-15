@@ -4,6 +4,9 @@ import (
 	"reflect"
 	"net/url"
 	"errors"
+	"io/ioutil"
+	"io"
+	"encoding/json"
 )
 
 type App struct {
@@ -19,31 +22,95 @@ func init(){
 	app.definitions = Definitions{}
 }
 
-func parseBody(ctx *Context) error {
+func parseBody(ctx *Context) (err error) {
+	var body []byte
+	defer func() {
+		r:=recover()
+		if r != nil {
+			http.Error(ctx.Response, "", 400)
+			err = errors.New("Bad Request")
+		}
+	}()
+
 	contentType := ctx.Request.Header.Get("Content-Type")
 	if len(contentType) > 33 && contentType[0:33] == "application/x-www-form-urlencoded"{
 		contentType = "application/x-www-form-urlencoded"
 	}
 
+	ctx.ContentType = contentType
+
 	switch contentType {
 		case "application/json":
-			return nil
+			body, err = ioutil.ReadAll(ctx.Request.Body)
+			if err != nil {
+				http.Error(ctx.Response, "", 400)
+				return
+			}
+
+			var data interface{}
+			err = json.Unmarshal(body, &data)
+			if err != nil {
+				http.Error(ctx.Response, "", 400)
+				return
+			}
+			ctx._Body = body
+			ctx.Body = data.(map[string]interface{})
+
+			return
+
 		case "application/x-www-form-urlencoded":
-			return nil
+			// TODO Может быть проблема с чтением пустого запроса EOF
+			var reader io.Reader = ctx.Request.Body
+			var values url.Values
+
+			maxFormSize := int64(10 << 20)
+			reader = io.LimitReader(ctx.Request.Body, maxFormSize+1)
+
+			body, err = ioutil.ReadAll(reader)
+			if err != nil {
+				http.Error(ctx.Response, "", 400)
+				return
+			}
+
+			if int64(len(body)) > maxFormSize {
+				http.Error(ctx.Response, "", 413)
+				err = errors.New("Request Entity Too Large")
+				return
+			}
+
+			values, err = url.ParseQuery(string(body))
+
+			if err != nil{
+				http.Error(ctx.Response, "", 400)
+				return
+			}
+
+			for i := range values{
+				if len(values[i]) == 1{
+					ctx.Body[i] = values[i][0]
+				} else {
+					ctx.Body[i] = values[i]
+				}
+			}
+			ctx._Body = body
+			return
 		case "multipart/form-data":
-			return nil
+			return
 		default:
-			return errors.New("Invalid conten-type")
+			err = errors.New("Bad Request")
+			http.Error(ctx.Response, "", 400)
+			return
 	}
 
-	return nil
+	return err
 }
 
-func parseRequest (ctx *Context) error{
+func parseRequest (ctx *Context) (err error){
+	var values url.Values
 	if (ctx.Request.Method == "GET") {
-		values, err := url.ParseQuery(ctx.Request.URL.RawQuery)
+		values, err = url.ParseQuery(ctx.Request.URL.RawQuery)
 		if err != nil{
-			return err
+			return
 		}
 		for i := range values{
 			if len(values[i]) == 1{
@@ -52,15 +119,15 @@ func parseRequest (ctx *Context) error{
 				ctx.Query[i] = values[i]
 			}
 		}
-		return err
+		return
 	}
 
 	if (ctx.Request.Method == "POST") {
-		err := parseBody(ctx)
-		return err
+		err = parseBody(ctx)
+		return
 	}
 
-	return nil
+	return
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -71,9 +138,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
 
-	ctx:= Context{Response:w, Request:r, Query: make(map[interface{}]interface{}), Body: make(map[interface{}]interface{})}
-
-	//ctx.Body = make(map[interface{}]interface{})
+	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{})}
 
 	if (len(path)>1 && path[len(path)-1:] == "/") {
 		http.Redirect(w,r, path[:len(path) - 1], 301)
@@ -87,12 +152,13 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Парсим запрос
 	err := parseRequest(&ctx)
 	if err != nil {
-		http.Error(ctx.Response, "", 400)
+		return
 	}
-
 
 	// Определем контроллер по прямому вхождению
 	if route, ok := a.router.routes[path]; ok {
+		// TODO: Добавить проверку метода
+
 		vc = reflect.New(route.Controller)
 		Action = vc.MethodByName(route.Action)
 		middlewareGroup = route.MiddlewareGroup
@@ -104,6 +170,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "", 404)
 			return;
 		} else {
+			// TODO: Добавить проверку метода
 			vc = reflect.New(route.Controller)
 			Action = vc.MethodByName(route.Action)
 			middlewareGroup = route.MiddlewareGroup
