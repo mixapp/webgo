@@ -3,6 +3,7 @@ import (
 	"net/http"
 	"reflect"
 	"net/url"
+	"errors"
 )
 
 type App struct {
@@ -18,20 +19,48 @@ func init(){
 	app.definitions = Definitions{}
 }
 
-func parseRequest (ctx *Context) error{
-	values, err := url.ParseQuery(ctx.Request.URL.RawQuery)
+func parseBody(ctx *Context) error {
+	contentType := ctx.Request.Header.Get("Content-Type")
+	if len(contentType) > 33 && contentType[0:33] == "application/x-www-form-urlencoded"{
+		contentType = "application/x-www-form-urlencoded"
+	}
 
-	if err != nil{
+	switch contentType {
+		case "application/json":
+			return nil
+		case "application/x-www-form-urlencoded":
+			return nil
+		case "multipart/form-data":
+			return nil
+		default:
+			return errors.New("Invalid conten-type")
+	}
+
+	return nil
+}
+
+func parseRequest (ctx *Context) error{
+	if (ctx.Request.Method == "GET") {
+		values, err := url.ParseQuery(ctx.Request.URL.RawQuery)
+		if err != nil{
+			return err
+		}
+		for i := range values{
+			if len(values[i]) == 1{
+				ctx.Query[i] = values[i][0]
+			} else {
+				ctx.Query[i] = values[i]
+			}
+		}
 		return err
 	}
-	for i := range values{
-		if len(values[i]) == 1{
-			ctx.Query[i] = values[i][0]
-		} else {
-			ctx.Query[i] = values[i]
-		}
+
+	if (ctx.Request.Method == "POST") {
+		err := parseBody(ctx)
+		return err
 	}
-	return err
+
+	return nil
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +71,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
 
-	ctx:= Context{Response:w, Request:r, Query: make(map[interface{}]interface{})}
+	ctx:= Context{Response:w, Request:r, Query: make(map[interface{}]interface{}), Body: make(map[interface{}]interface{})}
 
 	//ctx.Body = make(map[interface{}]interface{})
 
