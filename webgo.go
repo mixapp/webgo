@@ -2,6 +2,7 @@ package webgo
 import (
 	"net/http"
 	"reflect"
+	"net/url"
 )
 
 type App struct {
@@ -17,6 +18,22 @@ func init(){
 	app.definitions = Definitions{}
 }
 
+func parseRequest (ctx *Context) error{
+	values, err := url.ParseQuery(ctx.Request.URL.RawQuery)
+
+	if err != nil{
+		return err
+	}
+	for i := range values{
+		if len(values[i]) == 1{
+			ctx.Query[i] = values[i][0]
+		} else {
+			ctx.Query[i] = values[i]
+		}
+	}
+	return err
+}
+
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var vc reflect.Value
 	var Action reflect.Value
@@ -25,11 +42,25 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
 
-	ctx:= Context{Response:w, Request:r}
+	ctx:= Context{Response:w, Request:r, Query: make(map[interface{}]interface{})}
+
+	//ctx.Body = make(map[interface{}]interface{})
+
 	if (len(path)>1 && path[len(path)-1:] == "/") {
 		http.Redirect(w,r, path[:len(path) - 1], 301)
 		return
 	}
+
+	// Отдаем статику если был запрошен файл
+	// TODO: Реализовать отдачу файлов
+
+
+	// Парсим запрос
+	err := parseRequest(&ctx)
+	if err != nil {
+		http.Error(ctx.Response, "", 400)
+	}
+
 
 	// Определем контроллер по прямому вхождению
 	if route, ok := a.router.routes[path]; ok {
