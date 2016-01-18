@@ -159,7 +159,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	method := r.Method
 	path := r.URL.Path
-	LOGGER.Error("referf",434)
+
 	// Отдаем статику если был запрошен файл
 	ext:= filepath.Ext(path)
 	if ext != "" {
