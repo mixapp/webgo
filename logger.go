@@ -3,6 +3,7 @@ import (
 	"fmt"
 	"runtime"
 	"bytes"
+	"os"
 )
 
 var LOGGER Logger
@@ -49,6 +50,7 @@ func (l *Logger) Debug (err...interface{}) {
 func (l *Logger) Fatal (err...interface{}) {
 	error := l.getMessage(err)
 	fmt.Println("\n\r"+string(error)+"\n\r\n\r")
+	os.Exit(1)
 }
 
 func init() {

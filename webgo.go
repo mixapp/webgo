@@ -20,6 +20,7 @@ type App struct {
 	definitions Definitions
 	templates *template.Template
 	staticDir string
+	modules Modules
 }
 
 var app App
@@ -37,6 +38,7 @@ func init(){
 	app.definitions = Definitions{}
 	app.templates = templates
 	app.staticDir = "public"
+	app.modules = Modules{}
 }
 
 func parseBody(ctx *Context) (err error) {
@@ -243,6 +245,9 @@ func RegisterMiddleware(name string, plugins ...MiddlewareInterface)  {
 		app.definitions.Register(name, plugin)
 	}
 }
+func RegisterModule(name string, module ModuleInterface)  {
+	app.modules.RegisterModule(name, module)
+}
 
 func Get(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
 	app.router.addRoute("GET", url, controller, action, middlewareGroup)
@@ -260,7 +265,15 @@ func Options(url string, controller ControllerInterface, middlewareGroup string,
 	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
 }
 
-func Run(port string)  {
+func MODULES(str string) ModuleInterface {
+	return app.modules[str]
+	//instance := app.modules[str].GetInstance()
+	//instance.Db.Copy()
+	//d:=reflect.TypeOf(instance)
+	//fmt.Println("GET",instance,d.Elem())
+
+}
+func Run()  {
 	if CFG["port"] == "" {
 		LOGGER.Fatal("Unknow port")
 	}
