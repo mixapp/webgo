@@ -267,11 +267,6 @@ func Options(url string, controller ControllerInterface, middlewareGroup string,
 
 func MODULES(str string) ModuleInterface {
 	return app.modules[str]
-	//instance := app.modules[str].GetInstance()
-	//instance.Db.Copy()
-	//d:=reflect.TypeOf(instance)
-	//fmt.Println("GET",instance,d.Elem())
-
 }
 func Run()  {
 	if CFG["port"] == "" {
