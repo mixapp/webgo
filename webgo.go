@@ -261,5 +261,8 @@ func Options(url string, controller ControllerInterface, middlewareGroup string,
 }
 
 func Run(port string)  {
-	http.ListenAndServe(port, &app)
+	if CFG["port"] == "" {
+		LOGGER.Fatal("Unknow port")
+	}
+	http.ListenAndServe(":"+CFG["port"], &app)
 }
