@@ -3,7 +3,6 @@ package webgo
 import (
 	"net/http"
 	"encoding/json"
-	"fmt"
 )
 
 type Context struct {
@@ -15,14 +14,13 @@ type Context struct {
 	Body map[string]interface{}
 	statusCode int
 	body []byte
+	Method string
 	ContentType string
 }
 
 func (c *Context) ValidateSchema (schema interface{}) (err error) {
 
 	if c.ContentType == "application/x-www-form-urlencoded" {
-		g:=c.Request.ParseForm()
-		fmt.Println("",c.Request.PostForm,c.Request.Form, c.Request.PostFormValue("test"),g)
 		// TODO: Реализовать
 		return
 	}

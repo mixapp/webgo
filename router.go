@@ -17,6 +17,7 @@ type (
 		Pattern string
 		Controller reflect.Type
 		Action string
+		Method string
 		MiddlewareGroup string
 	}
 	Params map[string]string
@@ -25,6 +26,7 @@ type (
 		Pattern string
 		Controller reflect.Type
 		Action string
+		Method string
 		MiddlewareGroup string
 	}
 )
@@ -32,7 +34,7 @@ func (r *Router) Match (method string, url string) *Match {
 	var result *Match
 
 	for _, route := range r.routes {
-		if !route.Regex.MatchString(url) {
+		if !route.Regex.MatchString(url) || route.Method != method {
 			continue
 		}
 
@@ -45,7 +47,7 @@ func (r *Router) Match (method string, url string) *Match {
 			}
 			params[route.Keys[i]] = match[i]
 		}
-		result = &Match{params, route.Pattern, route.Controller,route.Action, route.MiddlewareGroup}
+		result = &Match{params, route.Pattern, route.Controller,route.Action, method, route.MiddlewareGroup}
 	}
 
 	return result
@@ -75,7 +77,7 @@ func (r *Router) addRoute(method string, path string, c ControllerInterface, act
 	str = strings.Replace(str, ".", "\\.", -1)
 
 	regex, _ := regexp.Compile(str)
-	r.routes[path] = Route{keys, regex, path, controller, action, middlewareGroup}
+	r.routes[path] = Route{keys, regex, path, controller, action, method, middlewareGroup}
 
 }
 

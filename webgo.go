@@ -11,12 +11,15 @@ import (
 	"path/filepath"
 	"os"
 	"strings"
+	"fmt"
+	"mime"
 )
 
 type App struct {
 	router Router
 	definitions Definitions
 	templates *template.Template
+	staticDir string
 }
 
 var app App
@@ -33,6 +36,7 @@ func init(){
 	app.router = Router{make(Routes)}
 	app.definitions = Definitions{}
 	app.templates = templates
+	app.staticDir = "public"
 }
 
 func parseBody(ctx *Context) (err error) {
@@ -45,14 +49,8 @@ func parseBody(ctx *Context) (err error) {
 		}
 	}()
 
-	contentType := ctx.Request.Header.Get("Content-Type")
-	if len(contentType) > 33 && contentType[0:33] == "application/x-www-form-urlencoded"{
-		contentType = "application/x-www-form-urlencoded"
-	}
 
-	ctx.ContentType = contentType
-
-	switch contentType {
+	switch ctx.ContentType {
 	case "application/json":
 		body, err = ioutil.ReadAll(ctx.Request.Body)
 		if err != nil {
@@ -72,6 +70,9 @@ func parseBody(ctx *Context) (err error) {
 		return
 
 	case "application/x-www-form-urlencoded":
+		g:=ctx.Request.ParseForm()
+		fmt.Println("",ctx.Request.PostForm,ctx.Request.Form,g)
+
 		// TODO Может быть проблема с чтением пустого запроса EOF
 		var reader io.Reader = ctx.Request.Body
 		var values url.Values
@@ -119,27 +120,34 @@ func parseBody(ctx *Context) (err error) {
 }
 
 func parseRequest (ctx *Context) (err error){
-	var values url.Values
 	if (ctx.Request.Method == "GET") {
-		values, err = url.ParseQuery(ctx.Request.URL.RawQuery)
-		if err != nil{
+		err = ctx.Request.ParseForm()
+		// TODO: скопировать данные
+		return
+	}
+
+	if ctx.Request.Method != "POST" && ctx.Request.Method != "PUT" && ctx.Request.Method != "PATCH" {
+		return
+	}
+
+	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
+	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
+
+	if err != nil {
+		http.Error(ctx.Response, "", 400)
+		return
+	}
+
+	if ctx.ContentType != "application/json" &&
+		ctx.ContentType != "application/x-www-form-urlencoded" &&
+		ctx.ContentType != "multipart/form-data" {
+			err = errors.New("Bad Request")
+			http.Error(ctx.Response, "", 400)
 			return
-		}
-		for i := range values{
-			if len(values[i]) == 1{
-				ctx.Query[i] = values[i][0]
-			} else {
-				ctx.Query[i] = values[i]
-			}
-		}
-		return
 	}
 
-	if (ctx.Request.Method == "POST") {
-		err = parseBody(ctx)
-		return
-	}
-
+	// TODO: Правильно спарсить + скопировать данные
+	err = parseBody(ctx)
 	return
 }
 
@@ -151,26 +159,24 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
 
-	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{})}
+	// Отдаем статику если был запрошен файл
+	ext:= filepath.Ext(path)
+	if ext != "" {
+		http.ServeFile(w, r, app.staticDir+filepath.Clean(path))
+		return
+	}
 
 	if (len(path)>1 && path[len(path)-1:] == "/") {
 		http.Redirect(w,r, path[:len(path) - 1], 301)
 		return
 	}
 
-	// Отдаем статику если был запрошен файл
-	// TODO: Реализовать отдачу файлов
-
-
-	// Парсим запрос
-	err := parseRequest(&ctx)
-	if err != nil {
-		return
-	}
-
 	// Определем контроллер по прямому вхождению
 	if route, ok := a.router.routes[path]; ok {
-		// TODO: Добавить проверку метода
+		if route.Method != method {
+			http.Error(w, "", 404)
+			return
+		}
 
 		vc = reflect.New(route.Controller)
 		Action = vc.MethodByName(route.Action)
@@ -179,11 +185,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Определяем контроллер по совпадениям
 		route := a.router.Match(method,path)
 		if route == nil{
-			// TODO 404
 			http.Error(w, "", 404)
-			return;
+			return
 		} else {
-			// TODO: Добавить проверку метода
 			vc = reflect.New(route.Controller)
 			Action = vc.MethodByName(route.Action)
 			middlewareGroup = route.MiddlewareGroup
@@ -194,6 +198,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		// TODO: Заменить панику
 		panic("controller is not ControllerInterface")
+	}
+
+	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Method:method}
+
+	// Парсим запрос
+	err := parseRequest(&ctx)
+	if err != nil {
+		return
 	}
 
 	// Инициализация контекста
@@ -222,7 +234,6 @@ func RegisterMiddleware(name string, plugins ...MiddlewareInterface)  {
 	for _, plugin:= range plugins {
 		app.definitions.Register(name, plugin)
 	}
-
 }
 
 func Get(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {

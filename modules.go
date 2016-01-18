@@ -1,13 +1,17 @@
 package webgo
-import "fmt"
 
-type Auth struct {}
+var MODULES Modules
 
-func (a *Auth) Run () {
-	fmt.Println("AUTH")
-}
+type (
+	Modules struct {}
+	Module struct {}
+	ModuleInterface interface {
+		Init ()
+		ReInit ()
+	}
+)
 
 
-func init(){
-
+func init() {
+	MODULES = Modules{}
 }
