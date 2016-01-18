@@ -16,6 +16,7 @@ type Context struct {
 	body []byte
 	Method string
 	ContentType string
+	error error
 }
 
 func (c *Context) ValidateSchema (schema interface{}) (err error) {
@@ -34,4 +35,20 @@ func (c *Context) ValidateSchema (schema interface{}) (err error) {
 	}
 
 	return
+}
+
+func (c *Context) isString(val interface{}) bool {
+	return false
+}
+func (c *Context) isInteger(val interface{}) bool {
+	return false
+}
+func (c *Context) isMap(val interface{}) bool {
+	return false
+}
+func (c *Context) isSlice(val interface{}) bool {
+	return false
+}
+func (c *Context) isBool(val interface{}) bool {
+	return false
 }
