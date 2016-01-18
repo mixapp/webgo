@@ -126,6 +126,7 @@ func parseRequest (ctx *Context) (err error){
 		return
 	}
 
+
 	if ctx.Request.Method != "POST" && ctx.Request.Method != "PUT" && ctx.Request.Method != "PATCH" {
 		return
 	}
@@ -158,7 +159,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	method := r.Method
 	path := r.URL.Path
-
+	LOGGER.Error("referf",434)
 	// Отдаем статику если был запрошен файл
 	ext:= filepath.Ext(path)
 	if ext != "" {
@@ -225,6 +226,13 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Запуск Экшена
 	in := make([]reflect.Value, 0)
 	Action.Call(in)
+
+	// Обрабатываем ошибки
+	if ctx.error != nil {
+		// TODO: Записать в лог
+		http.Error(w, "", 500)
+		return
+	}
 
 	// Запуск постобработчика
 	Controller.Finish()

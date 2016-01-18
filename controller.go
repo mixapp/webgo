@@ -26,8 +26,6 @@ type (
 		Render(tpl_name string, data interface{})
 		Json(data interface{})
 		Plain(data string)
-
-
 	}
 )
 
@@ -64,22 +62,12 @@ func (c Controller) Render (tpl_name string, data interface{}) {
 	bytes := bytes.NewBufferString("")
 	err = app.templates.ExecuteTemplate(bytes, tpl_name+".html", data)
 	if err != nil {
-		// TODO: Обработать ошибку
+		c.Ctx.error = err
 	}
 	c.Ctx.body, err = ioutil.ReadAll(bytes)
-
-
-	//	c.Ctx.Response.Header().Set("Content-Type", "text/html")
-	//	var tpl = template.Must(template.ParseGlob("templates/*"))
-	//	bytes := bytes.NewBufferString("")
-	//	tpl.ExecuteTemplate(bytes, tpl_name+".html", data)
-	//
-	//	c.Ctx.body, err = ioutil.ReadAll(bytes)
-	//	if err != nil {
-	//		// TODO: Обработать ошибку
-	//	}
 	c.Ctx.Response.Write(c.Ctx.body)
 }
+
 func (c Controller) Json (data interface{}) {
 	if c.Ctx.statusCode != 0 {
 		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
@@ -88,7 +76,7 @@ func (c Controller) Json (data interface{}) {
 	var content []byte
 	content, err := json.Marshal(data)
 	if err != nil{
-		// TODO: Обработать ошибку
+		c.Ctx.error = err
 	}
 
 	rs := []rune(string(content))
