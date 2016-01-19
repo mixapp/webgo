@@ -14,6 +14,7 @@ type Context struct {
 	Request *http.Request
 	Output interface{}
 	Query map[string]interface{}
+	Params map[string]string
 	_Body []byte
 	Body map[string]interface{}
 	statusCode int

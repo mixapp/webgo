@@ -158,6 +158,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var vc reflect.Value
 	var Action reflect.Value
 	var middlewareGroup string
+	var Params map[string]string
 
 	method := r.Method
 	path := r.URL.Path
@@ -194,6 +195,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			vc = reflect.New(route.Controller)
 			Action = vc.MethodByName(route.Action)
 			middlewareGroup = route.MiddlewareGroup
+			Params = route.Params
 		}
 	}
 
@@ -203,7 +205,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		panic("controller is not ControllerInterface")
 	}
 
-	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Method:method}
+	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params:Params, Method:method}
 
 	// Парсим запрос
 	err := parseRequest(&ctx)
@@ -249,19 +251,19 @@ func RegisterModule(name string, module ModuleInterface)  {
 	app.modules.RegisterModule(name, module)
 }
 
-func Get(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+func Get(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("GET", url, controller, action, middlewareGroup)
 }
-func Post(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+func Post(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("POST", url, controller, action, middlewareGroup)
 }
-func Put(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+func Put(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("PUT", url, controller, action, middlewareGroup)
 }
-func Delete(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string) {
+func Delete(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("DELETE", url, controller, action, middlewareGroup)
 }
-func Options(url string, controller ControllerInterface, middlewareGroup string, flags []string, action string)  {
+func Options(url string, controller ControllerInterface, middlewareGroup string, action string)  {
 	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
 }
 
