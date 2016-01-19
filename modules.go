@@ -1,17 +1,14 @@
 package webgo
 
-var MODULES Modules
-
 type (
-	Modules struct {}
-	Module struct {}
+	Modules map[string]ModuleInterface
 	ModuleInterface interface {
 		Init ()
-		ReInit ()
+		GetInstance () interface{}
 	}
 )
 
-
-func init() {
-	MODULES = Modules{}
+func (m Modules) RegisterModule (name string, module ModuleInterface) {
+	module.Init()
+	app.modules[name] = module
 }
