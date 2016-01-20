@@ -204,8 +204,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	Controller, ok := vc.Interface().(ControllerInterface)
 	if !ok {
-		// TODO: Заменить панику
-		panic("controller is not ControllerInterface")
+		LOGGER.Error(errors.New("controller is not ControllerInterface"))
+		http.Error(w,"",500)
+		return
 	}
 
 	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params:Params, Method:method}
