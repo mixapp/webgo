@@ -2,17 +2,17 @@ package webgo
 import (
 	"net/http"
 	"reflect"
-	"net/url"
 	"errors"
 	"io/ioutil"
-	"io"
 	"encoding/json"
 	"html/template"
 	"path/filepath"
+	"mime/multipart"
 	"os"
 	"strings"
-	"fmt"
 	"mime"
+	"io"
+	"strconv"
 )
 
 type App struct {
@@ -21,11 +21,15 @@ type App struct {
 	templates *template.Template
 	staticDir string
 	modules Modules
+	workDir string
+	tmpDir string
+	maxBodyLength int64
 }
 
 var app App
 
 func init(){
+	var err error
 	templates := template.New("template")
 	filepath.Walk("templates", func(path string, info os.FileInfo, err error) error {
 		if strings.HasSuffix(path, ".html") {
@@ -39,97 +43,37 @@ func init(){
 	app.templates = templates
 	app.staticDir = "public"
 	app.modules = Modules{}
-}
 
-func parseBody(ctx *Context) (err error) {
-	var body []byte
-	defer func() {
-		r:=recover()
-		if r != nil {
-			http.Error(ctx.Response, "", 400)
-			err = errors.New("Bad Request")
-		}
-	}()
+	app.workDir, err = os.Getwd()
+	app.tmpDir = app.workDir+"/tmp"
 
-
-	switch ctx.ContentType {
-	case "application/json":
-		body, err = ioutil.ReadAll(ctx.Request.Body)
-		if err != nil {
-			http.Error(ctx.Response, "", 400)
-			return
-		}
-
-		var data interface{}
-		err = json.Unmarshal(body, &data)
-		if err != nil {
-			http.Error(ctx.Response, "", 400)
-			return
-		}
-		ctx._Body = body
-		ctx.Body = data.(map[string]interface{})
-
-		return
-
-	case "application/x-www-form-urlencoded":
-		g:=ctx.Request.ParseForm()
-		fmt.Println("",ctx.Request.PostForm,ctx.Request.Form,g)
-
-		// TODO Может быть проблема с чтением пустого запроса EOF
-		var reader io.Reader = ctx.Request.Body
-		var values url.Values
-
-		maxFormSize := int64(10 << 20)
-		reader = io.LimitReader(ctx.Request.Body, maxFormSize+1)
-
-		body, err = ioutil.ReadAll(reader)
-		if err != nil {
-			http.Error(ctx.Response, "", 400)
-			return
-		}
-
-		if int64(len(body)) > maxFormSize {
-			http.Error(ctx.Response, "", 413)
-			err = errors.New("Request Entity Too Large")
-			return
-		}
-
-		values, err = url.ParseQuery(string(body))
-
-		if err != nil{
-			http.Error(ctx.Response, "", 400)
-			return
-		}
-
-		for i := range values{
-			if len(values[i]) == 1{
-				ctx.Body[i] = values[i][0]
-			} else {
-				ctx.Body[i] = values[i]
-			}
-		}
-		ctx._Body = body
-		return
-	case "multipart/form-data":
-		return
-	default:
-		err = errors.New("Bad Request")
-		http.Error(ctx.Response, "", 400)
-		return
+	if CFG["maxBodyLength"] == "" {
+		panic("maxBodyLength is empty")
+	}
+	app.maxBodyLength, err = strconv.ParseInt(CFG["maxBodyLength"],10,64)
+	if err != nil {
+		os.Exit(1)
 	}
 
-	return err
+	//TODO: Проверить папку tmp, создать если необходимо
 }
 
-func parseRequest (ctx *Context) (err error){
+func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
+	var body []byte
+	ctx.Request.Body = http.MaxBytesReader(ctx.Response, ctx.Request.Body, limit)
+
 	if (ctx.Request.Method == "GET") {
 		err = ctx.Request.ParseForm()
-		// TODO: скопировать данные
-		return
-	}
+		if err != nil {
+			errorCode = 400
+			return
+		}
 
+		// Копируем данные
+		for i := range ctx.Request.Form{
+			ctx.Query[i] = ctx.Request.Form[i]
+		}
 
-	if ctx.Request.Method != "POST" && ctx.Request.Method != "PUT" && ctx.Request.Method != "PATCH" {
 		return
 	}
 
@@ -137,24 +81,83 @@ func parseRequest (ctx *Context) (err error){
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
 	if err != nil {
-		http.Error(ctx.Response, "", 400)
+		errorCode = 400
 		return
 	}
 
-	if ctx.ContentType != "application/json" &&
-		ctx.ContentType != "application/x-www-form-urlencoded" &&
-		ctx.ContentType != "multipart/form-data" {
-			err = errors.New("Bad Request")
-			http.Error(ctx.Response, "", 400)
+	switch ctx.ContentType {
+	case "application/json":
+		body, err = ioutil.ReadAll(ctx.Request.Body)
+		if err != nil {
+			errorCode = 400
 			return
+		}
+
+		var data interface{}
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			errorCode = 400
+			return
+		}
+		ctx._Body = body
+		ctx.Body = data.(map[string]interface{})
+
+		return
+	case "application/x-www-form-urlencoded":
+		err = ctx.Request.ParseForm()
+		if err != nil {
+			errorCode = 400
+			return
+		}
+
+	case "multipart/form-data":
+		err = ctx.Request.ParseMultipartForm(limit)
+		if err != nil {
+			//TODO: 400 or 413
+			errorCode = 400
+			return
+		}
+
+		for _, fheaders := range ctx.Request.MultipartForm.File {
+			for _, hdr := range fheaders {
+				var infile multipart.File
+				if infile, err = hdr.Open(); nil != err {
+					errorCode = 500
+					return
+				}
+
+				var outfile *os.File
+				if outfile, err = os.Create(app.tmpDir+"/" + hdr.Filename); nil != err {
+					errorCode = 500
+					return
+				}
+				// 32K buffer copy
+				var written int64
+				if written, err = io.Copy(outfile, infile); nil != err {
+					errorCode = 500
+					return
+				}
+
+				ctx.Files = append(ctx.Files,File{FileName:hdr.Filename, Size:int64(written)})
+			}
+		}
+
+
+	default:
+		err = errors.New("Bad Request")
+		errorCode = 400
+		return
 	}
 
-	// TODO: Правильно спарсить + скопировать данные
-	err = parseBody(ctx)
+	for i := range ctx.Request.Form{
+		ctx.Body[i] = ctx.Request.Form[i]
+	}
+
 	return
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
 	var vc reflect.Value
 	var Action reflect.Value
 	var middlewareGroup string
@@ -208,8 +211,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params:Params, Method:method}
 
 	// Парсим запрос
-	err := parseRequest(&ctx)
+	code,err := parseRequest(&ctx,app.maxBodyLength)
 	if err != nil {
+		http.Error(w,"",code)
 		return
 	}
 
@@ -231,9 +235,23 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	in := make([]reflect.Value, 0)
 	Action.Call(in)
 
+
+	if ctx.ContentType == "multipart/form-data" {
+		err = ctx.Files.RemoveAll()
+		if err != nil {
+			LOGGER.Error(err)
+		}
+
+		err = ctx.Request.MultipartForm.RemoveAll()
+		if err != nil {
+			LOGGER.Error(err)
+		}
+	}
+
+
 	// Обрабатываем ошибки
 	if ctx.error != nil {
-		// TODO: Записать в лог
+		LOGGER.Error(err)
 		http.Error(w, "", 500)
 		return
 	}
