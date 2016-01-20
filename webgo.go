@@ -60,6 +60,14 @@ func init(){
 
 func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 	var body []byte
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			errorCode = 400
+			err = errors.New("Bad Request")
+		}
+	}()
 	ctx.Request.Body = http.MaxBytesReader(ctx.Response, ctx.Request.Body, limit)
 
 	if (ctx.Request.Method == "GET") {
