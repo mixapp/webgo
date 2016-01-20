@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"strings"
 	"time"
+	"reflect"
+	"strconv"
+	"errors"
 )
 
 type Context struct {
@@ -110,19 +113,111 @@ func (c *Context) SetCookie (name string, val string, params ...interface{}) {
 
 	c.Response.Header().Add("Set-Cookie", cookie.String())
 }
+
+
 func (c *Context) ValidateSchema (schema interface{}) (err error) {
 
-	if c.ContentType == "application/x-www-form-urlencoded" {
-		// TODO: Реализовать
-		return
-	}
 
-	if c.ContentType == "application/json" {
+	switch c.ContentType {
+	case CT_JSON:
 		err = json.Unmarshal(c._Body, schema)
-		if err != nil {
+	case CT_FORM, CT_MULTIPART:
+		schemaType := reflect.TypeOf(schema)
+
+		if schemaType.Kind() == reflect.Ptr {
+			schemaType = reflect.ValueOf(schema).Elem().Type()
+		}
+
+		if schemaType.Kind() != reflect.Struct {
+			err = errors.New("Invalid validation struct type: " + schemaType.Kind().String())
 			return
 		}
-		return
+
+		schemaValue := reflect.ValueOf(schema).Elem()
+
+		structMap := make(map[string]int)
+
+		numFields := schemaType.NumField()
+		for i := 0; i < numFields; i++ {
+			structMap[strings.ToLower(schemaType.Field(i).Name)] = i
+		}
+
+
+		for key, val := range c.Body {
+
+			if (len(val) == 0) {
+				continue
+			}
+
+			key = strings.ToLower(key)
+			idx, isFound := structMap[key]
+
+			if (isFound) {
+
+				field := schemaValue.Field(idx)
+
+				if (field.Type().Kind() == reflect.Slice) {
+
+					// Get kind of slice elements type
+					arrElemKind := field.Type().Elem().Kind()
+
+					for _, inValue := range val {
+
+						switch arrElemKind {
+						case reflect.String:
+							field.Set(reflect.Append(field, reflect.ValueOf(inValue)))
+						case reflect.Int:
+							setVal, e := strconv.Atoi(inValue)
+							if (e != nil) {
+								err = errors.New("Invalid value '" + inValue + "' for key '" + key + "', must be Integer")
+								return
+							}
+							field.Set(reflect.Append(field, reflect.ValueOf(setVal)))
+						case reflect.Float64:
+							setVal, e := strconv.ParseFloat(inValue, 64)
+							if (e != nil) {
+								err = errors.New("Invalid value '" + inValue + "' for key '" + key + "', must be Float64")
+								return
+							}
+							field.Set(reflect.Append(field, reflect.ValueOf(setVal)))
+						default:
+							err = errors.New("Unsupported field type: " + arrElemKind.String())
+							return
+						}
+					}
+
+				} else {
+					if (len(val) > 1) {
+						err = errors.New("Invalid array value for key '" + key + "'")
+						return
+					}
+
+					fieldKind := field.Type().Kind()
+
+					switch fieldKind {
+					case reflect.String:
+						field.SetString(val[0])
+					case reflect.Int:
+						setVal, e := strconv.Atoi(val[0])
+						if (e != nil) {
+							err = errors.New("Invalid value '" + val[0] + "' for key '" + key + "', must be Integer")
+							return
+						}
+						field.SetInt(int64(setVal))
+					case reflect.Float64:
+						setVal, e := strconv.ParseFloat(val[0], 64)
+						if (e != nil) {
+							err = errors.New("Invalid value '" + val[0] + "' for key '" + key + "', must be Float64")
+							return
+						}
+						field.SetFloat(setVal)
+					default:
+						err = errors.New("Unsupported field type: " + fieldKind.String())
+						return
+					}
+				}
+			}
+		}
 	}
 
 	return

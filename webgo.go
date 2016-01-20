@@ -23,6 +23,12 @@ type App struct {
 	modules Modules
 }
 
+const (
+	CT_JSON = "application/json"
+	CT_FORM = "application/x-www-form-urlencoded"
+	CT_MULTIPART = "multipart/form-data"
+)
+
 var app App
 
 func init(){
