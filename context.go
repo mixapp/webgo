@@ -10,13 +10,31 @@ import (
 	"reflect"
 	"strconv"
 	"errors"
+	"os"
 )
+
+type Files []File
+type File struct {
+	FileName string
+	Size int64
+}
+
+func (f *Files) RemoveAll() (err error) {
+	for _,file := range (*f) {
+		e := os.Remove(app.tmpDir+"/"+file.FileName)
+		if e != nil && err == nil {
+			err = e
+		}
+	}
+
+	return
+}
 
 type Context struct {
 	Response http.ResponseWriter
 	Request *http.Request
-	Output interface{}
 	Query map[string]interface{}
+	Files Files
 	Params map[string]string
 	_Body []byte
 	Body map[string]interface{}
