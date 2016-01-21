@@ -140,6 +140,7 @@ func (c *Context) ValidateSchema (schema interface{}) (err error) {
 	case CT_JSON:
 		err = json.Unmarshal(c._Body, schema)
 	case CT_FORM, CT_MULTIPART:
+
 		schemaType := reflect.TypeOf(schema)
 
 		if schemaType.Kind() == reflect.Ptr {
@@ -161,7 +162,9 @@ func (c *Context) ValidateSchema (schema interface{}) (err error) {
 		}
 
 
-		for key, val := range c.Body {
+		for key, iVal := range c.Body {
+
+			val := iVal.([]string)
 
 			if (len(val) == 0) {
 				continue
