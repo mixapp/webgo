@@ -100,7 +100,7 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 	}
 
 	switch ctx.ContentType {
-	case "application/json":
+	case CT_JSON:
 		body, err = ioutil.ReadAll(ctx.Request.Body)
 		if err != nil {
 			errorCode = 400
@@ -117,14 +117,14 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 		ctx.Body = data.(map[string]interface{})
 
 		return
-	case "application/x-www-form-urlencoded":
+	case CT_FORM:
 		err = ctx.Request.ParseForm()
 		if err != nil {
 			errorCode = 400
 			return
 		}
 
-	case "multipart/form-data":
+	case CT_MULTIPART:
 		err = ctx.Request.ParseMultipartForm(limit)
 		if err != nil {
 			//TODO: 400 or 413
