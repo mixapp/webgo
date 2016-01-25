@@ -1,26 +1,33 @@
 package webgo
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
-	"fmt"
-	"errors"
 )
 
-const configFileName = "config"
+const (
+	configFileName = "config"
+	CFG_ERROR_TIMEOUT = "errorTimeout"
+	CFG_SMTP_HOST = "smtpHost"
+	CFG_SMTP_PORT = "smtpPort"
+	CFG_SMTP_USER = "smtpUser"
+	CFG_SMTP_PASSWORD = "smtpPassword"
+	CFG_SMTP_FROM = "smtpFrom"
+	CFG_ADMIN_EMAIL = "adminEmail"
+)
 
+type config map[string]string
 
-type Config map[string]string
+var CFG config
 
-var CFG Config
-
-func (cfg *Config) Read() (err error) {
+func (cfg *config) Read() (err error) {
 
 	data, err := ioutil.ReadFile(configFileName)
 	if err != nil {
 		return
 	}
-
 
 	lines := strings.Split(string(data), "\n")
 
@@ -33,7 +40,7 @@ func (cfg *Config) Read() (err error) {
 		}
 
 		idx := strings.Index(line, "=")
-		if(idx == -1){
+		if idx == -1 {
 			sErr := fmt.Sprintf("Invalid config data at line %d: %s", i, line)
 			err = errors.New(sErr)
 			return
@@ -55,12 +62,13 @@ func (cfg *Config) Read() (err error) {
 	return
 }
 
-func (cfg *Config) SetValue(key string, val string) (err error) {
+func (cfg *config) SetValue(key string, val string) (err error) {
 
 	if len(key) == 0 {
 		return
 	}
 
+	(*cfg)[key] = val
 
 	data, err := ioutil.ReadFile(configFileName)
 	if err != nil {
@@ -69,9 +77,8 @@ func (cfg *Config) SetValue(key string, val string) (err error) {
 
 	lines := strings.Split(string(data), "\n")
 
-	var newLines = make([]string, 0);
-	var bFound = false;
-
+	var newLines = make([]string, 0)
+	var bFound = false
 
 	for _, line := range lines {
 
@@ -80,7 +87,7 @@ func (cfg *Config) SetValue(key string, val string) (err error) {
 		if !bFound && (len(line) > 0) && (line[:1] != ";") {
 
 			idx := strings.Index(line, "=")
-			if (idx >= 0) {
+			if idx >= 0 {
 
 				fKey := strings.TrimSpace(line[:idx])
 
@@ -97,7 +104,7 @@ func (cfg *Config) SetValue(key string, val string) (err error) {
 	}
 
 	if !bFound {
-		newLines = append(newLines, key + "=" + val)
+		newLines = append(newLines, key+"="+val)
 	}
 
 	output := strings.Join(newLines, "\n")
@@ -106,9 +113,8 @@ func (cfg *Config) SetValue(key string, val string) (err error) {
 	return
 }
 
-
 func init() {
-	CFG = make(Config)
+	CFG = make(config)
 
 	err := CFG.Read()
 

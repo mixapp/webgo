@@ -154,30 +154,19 @@ func (c *Context) ValidateSchema (schema interface{}) (err error) {
 
 		schemaValue := reflect.ValueOf(schema).Elem()
 
-		structMap := make(map[string]int)
-
-		numFields := schemaType.NumField()
-		for i := 0; i < numFields; i++ {
-			structMap[strings.ToLower(schemaType.Field(i).Name)] = i
-		}
-
-
 		for key, iVal := range c.Body {
 
 			val := iVal.([]string)
 
-			if (len(val) == 0) {
+			if len(val) == 0 {
 				continue
 			}
 
-			key = strings.ToLower(key)
-			idx, isFound := structMap[key]
+			field := schemaValue.FieldByName(key)
 
-			if (isFound) {
+			if field.IsValid() {
 
-				field := schemaValue.Field(idx)
-
-				if (field.Type().Kind() == reflect.Slice) {
+				if field.Kind() == reflect.Slice {
 
 					// Get kind of slice elements type
 					arrElemKind := field.Type().Elem().Kind()
@@ -189,14 +178,14 @@ func (c *Context) ValidateSchema (schema interface{}) (err error) {
 							field.Set(reflect.Append(field, reflect.ValueOf(inValue)))
 						case reflect.Int:
 							setVal, e := strconv.Atoi(inValue)
-							if (e != nil) {
+							if e != nil {
 								err = errors.New("Invalid value '" + inValue + "' for key '" + key + "', must be Integer")
 								return
 							}
 							field.Set(reflect.Append(field, reflect.ValueOf(setVal)))
 						case reflect.Float64:
 							setVal, e := strconv.ParseFloat(inValue, 64)
-							if (e != nil) {
+							if e != nil {
 								err = errors.New("Invalid value '" + inValue + "' for key '" + key + "', must be Float64")
 								return
 							}
@@ -208,26 +197,26 @@ func (c *Context) ValidateSchema (schema interface{}) (err error) {
 					}
 
 				} else {
-					if (len(val) > 1) {
+					if len(val) > 1 {
 						err = errors.New("Invalid array value for key '" + key + "'")
 						return
 					}
 
-					fieldKind := field.Type().Kind()
+					fieldKind := field.Kind()
 
 					switch fieldKind {
 					case reflect.String:
 						field.SetString(val[0])
 					case reflect.Int:
 						setVal, e := strconv.Atoi(val[0])
-						if (e != nil) {
+						if e != nil {
 							err = errors.New("Invalid value '" + val[0] + "' for key '" + key + "', must be Integer")
 							return
 						}
 						field.SetInt(int64(setVal))
 					case reflect.Float64:
 						setVal, e := strconv.ParseFloat(val[0], 64)
-						if (e != nil) {
+						if e != nil {
 							err = errors.New("Invalid value '" + val[0] + "' for key '" + key + "', must be Float64")
 							return
 						}
