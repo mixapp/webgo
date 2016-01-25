@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	configFileName = "config"
+	configFileName    = "config"
 	CFG_ERROR_TIMEOUT = "errorTimeout"
-	CFG_SMTP_HOST = "smtpHost"
-	CFG_SMTP_PORT = "smtpPort"
-	CFG_SMTP_USER = "smtpUser"
+	CFG_SMTP_HOST     = "smtpHost"
+	CFG_SMTP_PORT     = "smtpPort"
+	CFG_SMTP_USER     = "smtpUser"
 	CFG_SMTP_PASSWORD = "smtpPassword"
-	CFG_SMTP_FROM = "smtpFrom"
-	CFG_ADMIN_EMAIL = "adminEmail"
+	CFG_SMTP_FROM     = "smtpFrom"
+	CFG_ADMIN_EMAIL   = "adminEmail"
 )
 
 type config map[string]string

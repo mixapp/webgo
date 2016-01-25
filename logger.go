@@ -14,7 +14,6 @@ import (
 // sms
 // ???
 
-
 type ProviderInterface interface {
 	GetID() string
 	Log(msg []byte)
@@ -25,20 +24,20 @@ type ProviderInterface interface {
 
 const DEFAULT_ERROR_TIMEOUT = 60
 
-type Logger struct{
-	timeout 		int
-	providers 	   map[string]*ProviderInterface
+type Logger struct {
+	timeout        int
+	providers      map[string]*ProviderInterface
 	logProviders   []string
 	errorProviders []string
 	fatalProviders []string
 	debugProviders []string
-	errorsBuffer map[int]time.Time
+	errorsBuffer   map[int]time.Time
 }
 
 func NewLogger() *Logger {
 	newLogger := Logger{
-		providers:	make(map[string]*ProviderInterface, 0),
-		timeout:	DEFAULT_ERROR_TIMEOUT,
+		providers:    make(map[string]*ProviderInterface, 0),
+		timeout:      DEFAULT_ERROR_TIMEOUT,
 		errorsBuffer: make(map[int]time.Time, 0),
 	}
 
@@ -53,13 +52,11 @@ func NewLogger() *Logger {
 	return &newLogger
 }
 
-
 func (l *Logger) RegisterProvider(p ProviderInterface) {
 	l.providers[p.GetID()] = &p
 }
 
-
-func (l *Logger) AddLogProvider(provIDs...string) {
+func (l *Logger) AddLogProvider(provIDs ...string) {
 
 	for _, provID := range provIDs {
 		p, bFound := l.providers[provID]
@@ -78,7 +75,7 @@ func (l *Logger) AddLogProvider(provIDs...string) {
 	}
 }
 
-func (l *Logger) AddErrorProvider(provIDs...string) {
+func (l *Logger) AddErrorProvider(provIDs ...string) {
 
 	for _, provID := range provIDs {
 
@@ -98,7 +95,7 @@ func (l *Logger) AddErrorProvider(provIDs...string) {
 	}
 }
 
-func (l *Logger) AddFatalProvider(provIDs...string) {
+func (l *Logger) AddFatalProvider(provIDs ...string) {
 
 	for _, provID := range provIDs {
 
@@ -118,8 +115,7 @@ func (l *Logger) AddFatalProvider(provIDs...string) {
 	}
 }
 
-
-func (l *Logger) AddDebugProvider(provIDs...string) {
+func (l *Logger) AddDebugProvider(provIDs ...string) {
 
 	for _, provID := range provIDs {
 
@@ -139,9 +135,7 @@ func (l *Logger) AddDebugProvider(provIDs...string) {
 	}
 }
 
-
 func (l *Logger) makeMessage(err ...interface{}) []byte {
-
 
 	t := time.Now()
 
@@ -159,7 +153,6 @@ func (l *Logger) makeMessage(err ...interface{}) []byte {
 }
 
 func (l *Logger) makeErrorMessage(erorCode int, err ...interface{}) []byte {
-
 
 	t := time.Now()
 
@@ -184,8 +177,7 @@ func (l *Logger) makeErrorMessage(erorCode int, err ...interface{}) []byte {
 	return buf.Bytes()
 }
 
-
-func (l *Logger) Log(err...interface{}) {
+func (l *Logger) Log(err ...interface{}) {
 	msg := l.makeMessage(err)
 
 	for _, pID := range l.logProviders {
@@ -195,7 +187,6 @@ func (l *Logger) Log(err...interface{}) {
 		}
 	}
 }
-
 
 func (l *Logger) Error(errorCode int, err ...interface{}) {
 
@@ -219,7 +210,6 @@ func (l *Logger) Error(errorCode int, err ...interface{}) {
 	}
 }
 
-
 func (l *Logger) Debug(err ...interface{}) {
 	msg := l.makeMessage(err)
 
@@ -230,7 +220,6 @@ func (l *Logger) Debug(err ...interface{}) {
 		}
 	}
 }
-
 
 func (l *Logger) Fatal(errorCode int, err ...interface{}) {
 	msg := l.makeErrorMessage(errorCode, err)
@@ -245,7 +234,6 @@ func (l *Logger) Fatal(errorCode int, err ...interface{}) {
 	os.Exit(1)
 }
 
-
 var LOGGER *Logger
 
 func init() {
@@ -254,8 +242,8 @@ func init() {
 	cp := consoleProvider{}
 	ep := emailProvider{}
 
-	LOGGER.RegisterProvider(cp);
-	LOGGER.RegisterProvider(ep);
+	LOGGER.RegisterProvider(cp)
+	LOGGER.RegisterProvider(ep)
 
 	LOGGER.AddLogProvider(PROVIDER_CONSOLE)
 	LOGGER.AddErrorProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)

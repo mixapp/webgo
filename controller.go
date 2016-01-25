@@ -1,10 +1,11 @@
 package webgo
+
 import (
-	"net/http"
-	"encoding/json"
-	"strconv"
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"strconv"
 )
 
 type (
@@ -12,13 +13,13 @@ type (
 		Ctx *Context
 	}
 	ControllerInterface interface {
-		Init (ctx *Context)
-		Prepare ()
-		Finish ()
-		Error (code int, tpl string)
+		Init(ctx *Context)
+		Prepare()
+		Finish()
+		Error(code int, tpl string)
 
-		GetHeader (key string) string
-		SetHeader (key string, val string)
+		GetHeader(key string) string
+		SetHeader(key string, val string)
 		SetStatusCode(code int)
 
 		Redirect(location string, code int)
@@ -33,26 +34,26 @@ func (c *Controller) Init(ctx *Context) {
 	c.Ctx = ctx
 }
 func (c Controller) Prepare() {}
-func (c Controller) Finish() {}
+func (c Controller) Finish()  {}
 func (c Controller) Error(code int, data string) {
-	http.Error(c.Ctx.Response,data,code)
+	http.Error(c.Ctx.Response, data, code)
 }
 
-func (c Controller) GetHeader(key string)string {
+func (c Controller) GetHeader(key string) string {
 	return c.Ctx.Request.Header.Get(key)
 }
 func (c Controller) SetHeader(key string, val string) {
 	c.Ctx.Response.Header().Set(key, val)
 }
-func (c *Controller) SetStatusCode (code int) {
+func (c *Controller) SetStatusCode(code int) {
 	c.Ctx.statusCode = code
 }
 
-func (c Controller) Redirect (location string, code int) {
-	http.Redirect(c.Ctx.Response,c.Ctx.Request, location, code)
+func (c Controller) Redirect(location string, code int) {
+	http.Redirect(c.Ctx.Response, c.Ctx.Request, location, code)
 }
 
-func (c Controller) Render (tpl_name string, data interface{}) {
+func (c Controller) Render(tpl_name string, data interface{}) {
 	var err error
 
 	if c.Ctx.statusCode != 0 {
@@ -68,14 +69,14 @@ func (c Controller) Render (tpl_name string, data interface{}) {
 	c.Ctx.Response.Write(c.Ctx.body)
 }
 
-func (c Controller) Json (data interface{}) {
+func (c Controller) Json(data interface{}) {
 	if c.Ctx.statusCode != 0 {
 		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
 	}
 	c.Ctx.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	var content []byte
 	content, err := json.Marshal(data)
-	if err != nil{
+	if err != nil {
 		c.Ctx.error = err
 	}
 
@@ -92,7 +93,7 @@ func (c Controller) Json (data interface{}) {
 
 	c.Ctx.Response.Write([]byte(jsons))
 }
-func (c Controller) Plain (data string) {
+func (c Controller) Plain(data string) {
 	if c.Ctx.statusCode != 0 {
 		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
 	}

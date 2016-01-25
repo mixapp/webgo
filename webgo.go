@@ -1,40 +1,41 @@
 package webgo
+
 import (
-	"net/http"
-	"reflect"
-	"errors"
-	"io/ioutil"
 	"encoding/json"
+	"errors"
 	"html/template"
-	"path/filepath"
-	"mime/multipart"
-	"os"
-	"strings"
-	"mime"
 	"io"
+	"io/ioutil"
+	"mime"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strconv"
+	"strings"
 )
 
 type App struct {
-	router Router
-	definitions Definitions
-	templates *template.Template
-	staticDir string
-	modules Modules
-	workDir string
-	tmpDir string
+	router        Router
+	definitions   Definitions
+	templates     *template.Template
+	staticDir     string
+	modules       Modules
+	workDir       string
+	tmpDir        string
 	maxBodyLength int64
 }
 
 const (
-	CT_JSON = "application/json"
-	CT_FORM = "application/x-www-form-urlencoded"
+	CT_JSON      = "application/json"
+	CT_FORM      = "application/x-www-form-urlencoded"
 	CT_MULTIPART = "multipart/form-data"
 )
 
 var app App
 
-func init(){
+func init() {
 	var err error
 	templates := template.New("template")
 	filepath.Walk("templates", func(path string, info os.FileInfo, err error) error {
@@ -51,12 +52,12 @@ func init(){
 	app.modules = Modules{}
 
 	app.workDir, err = os.Getwd()
-	app.tmpDir = app.workDir+"/tmp"
+	app.tmpDir = app.workDir + "/tmp"
 
 	if CFG["maxBodyLength"] == "" {
 		panic("maxBodyLength is empty")
 	}
-	app.maxBodyLength, err = strconv.ParseInt(CFG["maxBodyLength"],10,64)
+	app.maxBodyLength, err = strconv.ParseInt(CFG["maxBodyLength"], 10, 64)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -64,7 +65,7 @@ func init(){
 	//TODO: Проверить папку tmp, создать если необходимо
 }
 
-func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
+func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 	var body []byte
 
 	defer func() {
@@ -76,7 +77,7 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 	}()
 	ctx.Request.Body = http.MaxBytesReader(ctx.Response, ctx.Request.Body, limit)
 
-	if (ctx.Request.Method == "GET") {
+	if ctx.Request.Method == "GET" {
 		err = ctx.Request.ParseForm()
 		if err != nil {
 			errorCode = 400
@@ -84,7 +85,7 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 		}
 
 		// Копируем данные
-		for i := range ctx.Request.Form{
+		for i := range ctx.Request.Form {
 			ctx.Query[i] = ctx.Request.Form[i]
 		}
 
@@ -141,7 +142,7 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 				}
 
 				var outfile *os.File
-				if outfile, err = os.Create(app.tmpDir+"/" + hdr.Filename); nil != err {
+				if outfile, err = os.Create(app.tmpDir + "/" + hdr.Filename); nil != err {
 					errorCode = 500
 					return
 				}
@@ -152,10 +153,9 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 					return
 				}
 
-				ctx.Files = append(ctx.Files,File{FileName:hdr.Filename, Size:int64(written)})
+				ctx.Files = append(ctx.Files, File{FileName: hdr.Filename, Size: int64(written)})
 			}
 		}
-
 
 	default:
 		err = errors.New("Bad Request")
@@ -163,7 +163,7 @@ func parseRequest (ctx *Context, limit int64) (errorCode int,err error){
 		return
 	}
 
-	for i := range ctx.Request.Form{
+	for i := range ctx.Request.Form {
 		ctx.Body[i] = ctx.Request.Form[i]
 	}
 
@@ -181,14 +181,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
 	// Отдаем статику если был запрошен файл
-	ext:= filepath.Ext(path)
+	ext := filepath.Ext(path)
 	if ext != "" {
 		http.ServeFile(w, r, app.staticDir+filepath.Clean(path))
 		return
 	}
 
-	if (len(path)>1 && path[len(path)-1:] == "/") {
-		http.Redirect(w,r, path[:len(path) - 1], 301)
+	if len(path) > 1 && path[len(path)-1:] == "/" {
+		http.Redirect(w, r, path[:len(path)-1], 301)
 		return
 	}
 
@@ -204,8 +204,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		middlewareGroup = route.MiddlewareGroup
 	} else {
 		// Определяем контроллер по совпадениям
-		route := a.router.Match(method,path)
-		if route == nil{
+		route := a.router.Match(method, path)
+		if route == nil {
 			http.Error(w, "", 404)
 			return
 		} else {
@@ -219,16 +219,16 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Controller, ok := vc.Interface().(ControllerInterface)
 	if !ok {
 		LOGGER.Error(errors.New("controller is not ControllerInterface"))
-		http.Error(w,"",500)
+		http.Error(w, "", 500)
 		return
 	}
 
-	ctx:= Context{Response:w, Request:r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params:Params, Method:method}
+	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: Params, Method: method}
 
 	// Парсим запрос
-	code,err := parseRequest(&ctx,app.maxBodyLength)
+	code, err := parseRequest(&ctx, app.maxBodyLength)
 	if err != nil {
-		http.Error(w,"",code)
+		http.Error(w, "", code)
 		return
 	}
 
@@ -240,7 +240,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск цепочки middleware
 	if middlewareGroup != "" {
-		isNext := app.definitions.Run(middlewareGroup,&ctx)
+		isNext := app.definitions.Run(middlewareGroup, &ctx)
 		if !isNext {
 			return
 		}
@@ -249,7 +249,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Запуск Экшена
 	in := make([]reflect.Value, 0)
 	Action.Call(in)
-
 
 	if ctx.ContentType == "multipart/form-data" {
 		err = ctx.Files.RemoveAll()
@@ -263,7 +262,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-
 	// Обрабатываем ошибки
 	if ctx.error != nil {
 		LOGGER.Error(err)
@@ -275,12 +273,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Controller.Finish()
 }
 
-func RegisterMiddleware(name string, plugins ...MiddlewareInterface)  {
-	for _, plugin:= range plugins {
+func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
+	for _, plugin := range plugins {
 		app.definitions.Register(name, plugin)
 	}
 }
-func RegisterModule(name string, module ModuleInterface)  {
+func RegisterModule(name string, module ModuleInterface) {
 	app.modules.RegisterModule(name, module)
 }
 
@@ -296,14 +294,14 @@ func Put(url string, controller ControllerInterface, middlewareGroup string, act
 func Delete(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("DELETE", url, controller, action, middlewareGroup)
 }
-func Options(url string, controller ControllerInterface, middlewareGroup string, action string)  {
+func Options(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
 }
 
 func MODULES(str string) ModuleInterface {
 	return app.modules[str]
 }
-func Run()  {
+func Run() {
 	if CFG["port"] == "" {
 		LOGGER.Fatal("Unknow port")
 	}

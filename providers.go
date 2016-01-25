@@ -1,21 +1,18 @@
 package webgo
-import "fmt"
 
+import "fmt"
 
 const (
 	PROVIDER_CONSOLE = "console"
-	PROVIDER_EMAIL = "email"
+	PROVIDER_EMAIL   = "email"
 )
 
-
 type consoleProvider struct {
-
 }
 
 func (p consoleProvider) GetID() string {
 	return PROVIDER_CONSOLE
 }
-
 
 func (p consoleProvider) Log(msg []byte) {
 
@@ -38,10 +35,7 @@ func (p consoleProvider) Debug(msg []byte) {
 	fmt.Println(string(msg))
 }
 
-
-
 type emailProvider struct {
-
 }
 
 func (p emailProvider) GetID() string {

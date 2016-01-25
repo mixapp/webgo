@@ -1,27 +1,27 @@
 package webgo
 
 import (
-	"net/http"
-	"encoding/json"
-	"fmt"
 	"bytes"
-	"strings"
-	"time"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
 	"reflect"
 	"strconv"
-	"errors"
-	"os"
+	"strings"
+	"time"
 )
 
 type Files []File
 type File struct {
 	FileName string
-	Size int64
+	Size     int64
 }
 
 func (f *Files) RemoveAll() (err error) {
-	for _,file := range (*f) {
-		e := os.Remove(app.tmpDir+"/"+file.FileName)
+	for _, file := range *f {
+		e := os.Remove(app.tmpDir + "/" + file.FileName)
 		if e != nil && err == nil {
 			err = e
 		}
@@ -31,20 +31,19 @@ func (f *Files) RemoveAll() (err error) {
 }
 
 type Context struct {
-	Response http.ResponseWriter
-	Request *http.Request
-	Query map[string]interface{}
-	Files Files
-	Params map[string]string
-	_Body []byte
-	Body map[string]interface{}
-	statusCode int
-	body []byte
-	Method string
+	Response    http.ResponseWriter
+	Request     *http.Request
+	Query       map[string]interface{}
+	Files       Files
+	Params      map[string]string
+	_Body       []byte
+	Body        map[string]interface{}
+	statusCode  int
+	body        []byte
+	Method      string
 	ContentType string
-	error error
+	error       error
 }
-
 
 func (c *Context) GetCookie(key string) string {
 	val, err := c.Request.Cookie(key)
@@ -53,16 +52,17 @@ func (c *Context) GetCookie(key string) string {
 	}
 	return val.Value
 }
+
 // Порядок params - MaxAge, Path, Domain, HttpOnly, Secure
 // Внимание! HttpOnly для сессий необходимо передавать true!!! Это органичет доступ к кукам JS в браузере
-func (c *Context) SetCookie (name string, val string, params ...interface{}) {
+func (c *Context) SetCookie(name string, val string, params ...interface{}) {
 	var cookie bytes.Buffer
 
 	// Очищаем спец символы
-	nameCleaner := strings.NewReplacer("\n","-","\r","-")
+	nameCleaner := strings.NewReplacer("\n", "-", "\r", "-")
 	name = nameCleaner.Replace(name)
 
-	valueCleaner := strings.NewReplacer("\n"," ","\r"," ",";"," ")
+	valueCleaner := strings.NewReplacer("\n", " ", "\r", " ", ";", " ")
 	val = valueCleaner.Replace(val)
 
 	fmt.Fprintf(&cookie, "%s=%s", name, val)
@@ -132,9 +132,7 @@ func (c *Context) SetCookie (name string, val string, params ...interface{}) {
 	c.Response.Header().Add("Set-Cookie", cookie.String())
 }
 
-
-func (c *Context) ValidateSchema (schema interface{}) (err error) {
-
+func (c *Context) ValidateSchema(schema interface{}) (err error) {
 
 	switch c.ContentType {
 	case CT_JSON:

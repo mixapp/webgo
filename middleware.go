@@ -3,16 +3,17 @@ package webgo
 type Definitions struct {
 	Handlers map[string][]MiddlewareInterface
 }
-func (d *Definitions) Register (name string, plugin MiddlewareInterface) {
-		if _,ok:=d.Handlers[name]; !ok {
-			d.Handlers = make(map[string][]MiddlewareInterface)
-		}
-		d.Handlers[name] = append(d.Handlers[name],plugin)
+
+func (d *Definitions) Register(name string, plugin MiddlewareInterface) {
+	if _, ok := d.Handlers[name]; !ok {
+		d.Handlers = make(map[string][]MiddlewareInterface)
+	}
+	d.Handlers[name] = append(d.Handlers[name], plugin)
 }
 func (m *Definitions) Run(name string, ctx *Context) bool {
 	isNext := true
 
-	for _,handler:= range m.Handlers[name] {
+	for _, handler := range m.Handlers[name] {
 		if !isNext {
 			return false
 		}
@@ -22,11 +23,11 @@ func (m *Definitions) Run(name string, ctx *Context) bool {
 	return isNext
 }
 
+type Middleware struct{}
 
-type Middleware struct {}
-func (d Middleware) Run () {}
+func (d Middleware) Run() {}
 
 type MiddlewareInterface interface {
-	Run ()
-	Handler (ctx *Context) bool
+	Run()
+	Handler(ctx *Context) bool
 }

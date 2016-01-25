@@ -1,9 +1,10 @@
 package webgo
+
 import (
-	"regexp"
 	"fmt"
-	"strings"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 type (
@@ -11,26 +12,27 @@ type (
 		routes Routes
 	}
 	Routes map[string]Route
-	Route struct {
-		Keys []string
-		Regex *regexp.Regexp
-		Pattern string
-		Controller reflect.Type
-		Action string
-		Method string
+	Route  struct {
+		Keys            []string
+		Regex           *regexp.Regexp
+		Pattern         string
+		Controller      reflect.Type
+		Action          string
+		Method          string
 		MiddlewareGroup string
 	}
 	Params map[string]string
-	Match struct {
-		Params Params
-		Pattern string
-		Controller reflect.Type
-		Action string
-		Method string
+	Match  struct {
+		Params          Params
+		Pattern         string
+		Controller      reflect.Type
+		Action          string
+		Method          string
 		MiddlewareGroup string
 	}
 )
-func (r *Router) Match (method string, url string) *Match {
+
+func (r *Router) Match(method string, url string) *Match {
 	var result *Match
 
 	for _, route := range r.routes {
@@ -47,18 +49,18 @@ func (r *Router) Match (method string, url string) *Match {
 			}
 			params[route.Keys[i]] = match[i]
 		}
-		result = &Match{params, route.Pattern, route.Controller,route.Action, method, route.MiddlewareGroup}
+		result = &Match{params, route.Pattern, route.Controller, route.Action, method, route.MiddlewareGroup}
 	}
 
 	return result
 }
 func (r *Router) addRoute(method string, path string, c ControllerInterface, action string, middlewareGroup string) {
 	reflectVal := reflect.ValueOf(c)
-	val := reflectVal.MethodByName(action);
+	val := reflectVal.MethodByName(action)
 
-	if !val.IsValid(){
+	if !val.IsValid() {
 		// TODO: Заменить панику
-		panic("Экшен не найден");
+		panic("Экшен не найден")
 	}
 
 	controller := reflect.Indirect(reflectVal).Type()
@@ -80,4 +82,3 @@ func (r *Router) addRoute(method string, path string, c ControllerInterface, act
 	r.routes[path] = Route{keys, regex, path, controller, action, method, middlewareGroup}
 
 }
-
