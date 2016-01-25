@@ -218,7 +218,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	Controller, ok := vc.Interface().(ControllerInterface)
 	if !ok {
-		LOGGER.Error(2,errors.New("controller is not ControllerInterface"))
+		LOGGER.Error(3,errors.New("controller is not ControllerInterface"))
 		http.Error(w, "", 500)
 		return
 	}
@@ -253,18 +253,18 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ctx.ContentType == "multipart/form-data" {
 		err = ctx.Files.RemoveAll()
 		if err != nil {
-			LOGGER.Error(3,err)
+			LOGGER.Error(4,err)
 		}
 
 		err = ctx.Request.MultipartForm.RemoveAll()
 		if err != nil {
-			LOGGER.Error(4,err)
+			LOGGER.Error(5,err)
 		}
 	}
 
 	// Обрабатываем ошибки
 	if ctx.error != nil {
-		LOGGER.Error(5,err)
+		LOGGER.Error(6,err)
 		http.Error(w, "", 500)
 		return
 	}
@@ -305,5 +305,8 @@ func Run() {
 	if CFG["port"] == "" {
 		LOGGER.Fatal(1,"Unknow port")
 	}
-	http.ListenAndServe(":"+CFG["port"], &app)
+	err := http.ListenAndServe(":"+CFG["port"], &app)
+	if err != nil {
+		LOGGER.Fatal(2,err)
+	}
 }
