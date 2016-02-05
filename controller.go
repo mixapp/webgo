@@ -97,6 +97,6 @@ func (c Controller) Plain(data string) {
 	if c.Ctx.statusCode != 0 {
 		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
 	}
-	c.Ctx.Response.Header().Set("Content-Type", "text/plain")
+	c.Ctx.Response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	c.Ctx.Response.Write([]byte(data))
 }
