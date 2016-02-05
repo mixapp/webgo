@@ -20,7 +20,6 @@ const (
 
 type config map[string]string
 
-var CFG config
 
 func (cfg *config) Read() (err error) {
 
@@ -113,12 +112,3 @@ func (cfg *config) SetValue(key string, val string) (err error) {
 	return
 }
 
-func init() {
-	CFG = make(config)
-
-	err := CFG.Read()
-
-	if err != nil {
-		panic(err)
-	}
-}

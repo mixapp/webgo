@@ -34,9 +34,39 @@ const (
 )
 
 var app App
+var CFG config
+var LOGGER *Logger
+
 
 func init() {
+
 	var err error
+
+	// Init CFG
+	CFG = make(config)
+
+	err = CFG.Read()
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Init LOGGER
+	LOGGER = NewLogger()
+
+	cp := consoleProvider{}
+	ep := emailProvider{}
+
+	LOGGER.RegisterProvider(cp)
+	LOGGER.RegisterProvider(ep)
+
+	LOGGER.AddLogProvider(PROVIDER_CONSOLE)
+	LOGGER.AddErrorProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)
+	LOGGER.AddFatalProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)
+	LOGGER.AddDebugProvider(PROVIDER_CONSOLE)
+
+
+	// Init App
 	templates := template.New("template")
 	filepath.Walk("templates", func(path string, info os.FileInfo, err error) error {
 		if strings.HasSuffix(path, ".html") {
@@ -218,7 +248,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	Controller, ok := vc.Interface().(ControllerInterface)
 	if !ok {
-		LOGGER.Error(3,errors.New("controller is not ControllerInterface"))
+		LOGGER.Error(errors.New("controller is not ControllerInterface"))
 		http.Error(w, "", 500)
 		return
 	}
@@ -253,18 +283,18 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ctx.ContentType == "multipart/form-data" {
 		err = ctx.Files.RemoveAll()
 		if err != nil {
-			LOGGER.Error(4,err)
+			LOGGER.Error(err)
 		}
 
 		err = ctx.Request.MultipartForm.RemoveAll()
 		if err != nil {
-			LOGGER.Error(5,err)
+			LOGGER.Error(err)
 		}
 	}
 
 	// Обрабатываем ошибки
 	if ctx.error != nil {
-		LOGGER.Error(6,err)
+		LOGGER.Error(err)
 		http.Error(w, "", 500)
 		return
 	}
@@ -298,15 +328,16 @@ func Options(url string, controller ControllerInterface, middlewareGroup string,
 	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
 }
 
-func MODULES(str string) ModuleInterface {
+func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
+
 func Run() {
 	if CFG["port"] == "" {
-		LOGGER.Fatal(1,"Unknow port")
+		LOGGER.Fatal("Unknow port")
 	}
 	err := http.ListenAndServe(":"+CFG["port"], &app)
 	if err != nil {
-		LOGGER.Fatal(2,err)
+		LOGGER.Fatal(err)
 	}
 }
