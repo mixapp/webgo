@@ -69,15 +69,21 @@ func (c Controller) Render(tpl_name string, data interface{}) {
 	c.Ctx.Response.Write(c.Ctx.body)
 }
 
-func (c Controller) Json(data interface{}) {
+func (c Controller) Json(data interface{}, unicode bool) {
 	if c.Ctx.statusCode != 0 {
 		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
 	}
+
 	c.Ctx.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	var content []byte
 	content, err := json.Marshal(data)
 	if err != nil {
 		c.Ctx.error = err
+	}
+
+	if !unicode {
+		c.Ctx.Response.Write(content)
+		return
 	}
 
 	rs := []rune(string(content))
