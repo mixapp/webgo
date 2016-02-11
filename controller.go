@@ -14,7 +14,7 @@ type (
 	}
 	ControllerInterface interface {
 		Init(ctx *Context)
-		Prepare()
+		Prepare() bool
 		Finish()
 		Error(code int, tpl string)
 
@@ -25,7 +25,7 @@ type (
 		Redirect(location string, code int)
 
 		Render(tpl_name string, data interface{})
-		Json(data interface{})
+		Json(data interface{}, unicode bool)
 		Plain(data string)
 	}
 )
@@ -33,7 +33,9 @@ type (
 func (c *Controller) Init(ctx *Context) {
 	c.Ctx = ctx
 }
-func (c Controller) Prepare() {}
+func (c Controller) Prepare() bool {
+	return true;
+}
 func (c Controller) Finish()  {}
 func (c Controller) Error(code int, data string) {
 	http.Error(c.Ctx.Response, data, code)

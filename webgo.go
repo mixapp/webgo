@@ -266,7 +266,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Controller.Init(&ctx)
 
 	// Запуск предобработчика
-	Controller.Prepare()
+	if !Controller.Prepare() {
+		return;
+	}
 
 	// Запуск цепочки middleware
 	if middlewareGroup != "" {
