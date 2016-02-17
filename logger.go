@@ -120,7 +120,7 @@ func (l *Logger) AddDebugProvider(provIDs ...string) {
 	}
 }
 
-func (l *Logger) makeMessage(err ...interface{}) []byte {
+func (l *Logger) makeMessage(err []interface{}) []byte {
 
 	t := time.Now()
 
@@ -137,7 +137,7 @@ func (l *Logger) makeMessage(err ...interface{}) []byte {
 	return buf.Bytes()
 }
 
-func (l *Logger) makeErrorMessage(err ...interface{}) []byte {
+func (l *Logger) makeErrorMessage(err []interface{}) []byte {
 
 	t := time.Now()
 
