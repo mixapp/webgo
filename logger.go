@@ -115,7 +115,7 @@ func (l *Logger) AddDebugProvider(provIDs ...string) {
 				}
 			}
 
-			l.errorProviders = append(l.debugProviders, pID)
+			l.debugProviders = append(l.debugProviders, pID)
 		}
 	}
 }
