@@ -80,6 +80,6 @@ func (r *Router) addRoute(method string, path string, c ControllerInterface, act
 	str = strings.Replace(str, ".", "\\.", -1)
 
 	regex, _ := regexp.Compile(str)
-	r.routes[path] = Route{keys, regex, path, controller, action, method, middlewareGroup}
+	r.routes[path] = Route{keys, regex, path, controller, action, method, middlewareGroup, false}
 
 }
