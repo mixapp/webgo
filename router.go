@@ -16,19 +16,16 @@ type (
 		Keys            []string
 		Regex           *regexp.Regexp
 		Pattern         string
-		Controller      reflect.Type
-		Action          string
+		ControllerType      reflect.Type
+		Options *RouteOptions
 
-		MiddlewareGroup string
-		UploadFiles     bool
 	}
 	Params map[string]string
 	Match  struct {
 		Params          Params
 		Pattern         string
-		Controller      reflect.Type
-		Action          string
-		MiddlewareGroup string
+		ControllerType      reflect.Type
+		Options *RouteOptions
 	}
 	RouteOptions struct {
 		MiddlewareGroup string
@@ -41,6 +38,12 @@ type (
 
 func (r *Router) Match(method string, url string) *Match {
 	var result *Match
+
+	// Определем контроллер по прямому вхождению
+	if route, ok := r.routes[method][url]; ok {
+		result = &Match{make(Params), route.Pattern, route.ControllerType, route.Options}
+		return result
+	}
 
 	for _, route := range r.routes[method] {
 
@@ -57,7 +60,7 @@ func (r *Router) Match(method string, url string) *Match {
 			}
 			params[route.Keys[i]] = match[i]
 		}
-		result = &Match{params, route.Pattern, route.Controller, route.Action, route.MiddlewareGroup}
+		result = &Match{params, route.Pattern, route.ControllerType, route.Options}
 	}
 
 	return result
@@ -94,6 +97,6 @@ func (r *Router) addRoute(method string, path string, opts *RouteOptions){
 		r.routes[method] = make(map[string]Route)
 	}
 
-	r.routes[method][path] = Route{keys, regex, path, controller, opts.Action, opts.MiddlewareGroup, false}
+	r.routes[method][path] = Route{keys, regex, path, controller, opts}
 
 }

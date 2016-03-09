@@ -120,14 +120,6 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 		return
 	}
 
-	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
-	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
-
-	if err != nil {
-		errorCode = 400
-		return
-	}
-
 	switch ctx.ContentType {
 	case CT_JSON:
 		body, err = ioutil.ReadAll(ctx.Request.Body)
@@ -203,7 +195,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var vc reflect.Value
 	var Action reflect.Value
 	var middlewareGroup string
-	var Params map[string]string
 
 	method := r.Method
 	path := r.URL.Path
@@ -220,22 +211,30 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Определем контроллер по прямому вхождению
-	if route, ok := a.router.routes[method][path]; ok {
-		vc = reflect.New(route.Controller)
-		Action = vc.MethodByName(route.Action)
-		middlewareGroup = route.MiddlewareGroup
-	} else {
-		// Определяем контроллер по совпадениям
-		route := a.router.Match(method, path)
-		if route == nil {
-			http.Error(w, "", 404)
+	route := a.router.Match(method, path)
+	if route == nil {
+		http.Error(w, "", 404)
+		return
+	}
+
+	vc = reflect.New(route.ControllerType)
+	Action = vc.MethodByName(route.Options.Action)
+	middlewareGroup = route.Options.MiddlewareGroup
+
+	var err error
+	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: route.Params, Method: method}
+	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
+	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
+
+	if err != nil {
+		http.Error(w, "", 400)
+		return
+	}
+
+	if route.Options.ContentType != "" {
+		if route.Options.ContentType != ctx.ContentType {
+			http.Error(w, "", 400)
 			return
-		} else {
-			vc = reflect.New(route.Controller)
-			Action = vc.MethodByName(route.Action)
-			middlewareGroup = route.MiddlewareGroup
-			Params = route.Params
 		}
 	}
 
@@ -246,7 +245,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: Params, Method: method}
 
 	// Парсим запрос
 	code, err := parseRequest(&ctx, app.maxBodyLength)
