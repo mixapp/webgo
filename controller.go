@@ -34,9 +34,9 @@ func (c *Controller) Init(ctx *Context) {
 	c.Ctx = ctx
 }
 func (c Controller) Prepare() bool {
-	return true;
+	return true
 }
-func (c Controller) Finish()  {}
+func (c Controller) Finish() {}
 func (c Controller) Error(code int, data string) {
 	http.Error(c.Ctx.Response, data, code)
 }

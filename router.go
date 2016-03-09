@@ -20,6 +20,7 @@ type (
 		Action          string
 		Method          string
 		MiddlewareGroup string
+		UploadFiles     bool
 	}
 	Params map[string]string
 	Match  struct {

@@ -31,7 +31,7 @@ type Logger struct {
 
 func NewLogger() *Logger {
 	newLogger := Logger{
-		providers:    make(map[string]*ProviderInterface, 0),
+		providers: make(map[string]*ProviderInterface, 0),
 	}
 
 	return &newLogger
@@ -206,4 +206,3 @@ func (l *Logger) Fatal(err ...interface{}) {
 
 	os.Exit(1)
 }
-

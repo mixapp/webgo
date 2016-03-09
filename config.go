@@ -20,7 +20,6 @@ const (
 
 type config map[string]string
 
-
 func (cfg *config) Read() (err error) {
 
 	data, err := ioutil.ReadFile(configFileName)
@@ -111,4 +110,3 @@ func (cfg *config) SetValue(key string, val string) (err error) {
 
 	return
 }
-

@@ -37,7 +37,6 @@ var app App
 var CFG config
 var LOGGER *Logger
 
-
 func init() {
 
 	var err error
@@ -64,7 +63,6 @@ func init() {
 	LOGGER.AddErrorProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)
 	LOGGER.AddFatalProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)
 	LOGGER.AddDebugProvider(PROVIDER_CONSOLE)
-
 
 	// Init App
 	templates := template.New("template")
@@ -267,7 +265,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск предобработчика
 	if !Controller.Prepare() {
-		return;
+		return
 	}
 
 	// Запуск цепочки middleware
