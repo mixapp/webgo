@@ -25,9 +25,8 @@ func (m *Definitions) Run(name string, ctx *Context) bool {
 
 type Middleware struct{}
 
-func (d Middleware) Run() {}
+
 
 type MiddlewareInterface interface {
-	Run()
 	Handler(ctx *Context) bool
 }

@@ -329,6 +329,9 @@ func Delete(url string, controller ControllerInterface, middlewareGroup string, 
 func Options(url string, controller ControllerInterface, middlewareGroup string, action string) {
 	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
 }
+func Upload(url string, controller ControllerInterface, middlewareGroup string, action string) {
+	app.router.addRoute("POST", url, controller, action, middlewareGroup)
+}
 
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]
