@@ -307,20 +307,20 @@ func RegisterModule(name string, module ModuleInterface) {
 	app.modules.RegisterModule(name, module)
 }
 
-func Get(url string, opts *RouterOptions) {
-	app.router.addRoute("GET", url, opts)
+func Get(url string, opts RouteOptions) {
+	app.router.addRoute("GET", url, &opts)
 }
-func Post(url string, opts *RouterOptions) {
-	app.router.addRoute("POST", url, opts)
+func Post(url string, opts RouteOptions) {
+	app.router.addRoute("POST", url, &opts)
 }
-func Put(url string, opts *RouterOptions) {
-	app.router.addRoute("PUT", url, opts)
+func Put(url string, opts RouteOptions) {
+	app.router.addRoute("PUT", url, &opts)
 }
-func Delete(url string, opts *RouterOptions) {
-	app.router.addRoute("DELETE", url, opts)
+func Delete(url string, opts RouteOptions) {
+	app.router.addRoute("DELETE", url, &opts)
 }
-func Options(url string, opts *RouterOptions) {
-	app.router.addRoute("OPTIONS", url, opts)
+func Options(url string, opts RouteOptions) {
+	app.router.addRoute("OPTIONS", url, &opts)
 }
 
 

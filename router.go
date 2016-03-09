@@ -30,7 +30,7 @@ type (
 		Action          string
 		MiddlewareGroup string
 	}
-	RouterOptions struct {
+	RouteOptions struct {
 		MiddlewareGroup string
 		Controller ControllerInterface
 		Action string
@@ -43,7 +43,7 @@ func (r *Router) Match(method string, url string) *Match {
 	var result *Match
 
 	for _, route := range r.routes[method] {
-		fmt.Println("r",route)
+
 		if !route.Regex.MatchString(url) {
 			continue
 		}
@@ -62,7 +62,7 @@ func (r *Router) Match(method string, url string) *Match {
 
 	return result
 }
-func (r *Router) addRoute(method string, path string, opts *RouterOptions){
+func (r *Router) addRoute(method string, path string, opts *RouteOptions){
 	//c ControllerInterface, action string, middlewareGroup string
 
 	reflectVal := reflect.ValueOf(opts.Controller)
@@ -95,7 +95,5 @@ func (r *Router) addRoute(method string, path string, opts *RouterOptions){
 	}
 
 	r.routes[method][path] = Route{keys, regex, path, controller, opts.Action, opts.MiddlewareGroup, false}
-
-	fmt.Println(r.routes)
 
 }
