@@ -226,7 +226,6 @@ func (c *Context) ValidateSchema(schema interface{}) (err error) {
 				}
 			}
 		}
-		вуа
 	default:
 		return errors.New("Invalid content type")
 	}
