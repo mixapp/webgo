@@ -72,8 +72,7 @@ func (r *Router) addRoute(method string, path string, opts *RouteOptions){
 	val := reflectVal.MethodByName(opts.Action)
 
 	if !val.IsValid() {
-		// TODO: Заменить панику
-		panic("Экшен не найден")
+		LOGGER.Fatal("Action not found: "+opts.Action)
 	}
 
 	controller := reflect.Indirect(reflectVal).Type()
