@@ -221,12 +221,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Определем контроллер по прямому вхождению
-	if route, ok := a.router.routes[path]; ok {
-		if route.Method != method {
-			http.Error(w, "", 404)
-			return
-		}
-
+	if route, ok := a.router.routes[method][path]; ok {
 		vc = reflect.New(route.Controller)
 		Action = vc.MethodByName(route.Action)
 		middlewareGroup = route.MiddlewareGroup
@@ -312,24 +307,22 @@ func RegisterModule(name string, module ModuleInterface) {
 	app.modules.RegisterModule(name, module)
 }
 
-func Get(url string, controller ControllerInterface, middlewareGroup string, action string) {
-	app.router.addRoute("GET", url, controller, action, middlewareGroup)
+func Get(url string, opts *RouterOptions) {
+	app.router.addRoute("GET", url, opts)
 }
-func Post(url string, controller ControllerInterface, middlewareGroup string, action string) {
-	app.router.addRoute("POST", url, controller, action, middlewareGroup)
+func Post(url string, opts *RouterOptions) {
+	app.router.addRoute("POST", url, opts)
 }
-func Put(url string, controller ControllerInterface, middlewareGroup string, action string) {
-	app.router.addRoute("PUT", url, controller, action, middlewareGroup)
+func Put(url string, opts *RouterOptions) {
+	app.router.addRoute("PUT", url, opts)
 }
-func Delete(url string, controller ControllerInterface, middlewareGroup string, action string) {
-	app.router.addRoute("DELETE", url, controller, action, middlewareGroup)
+func Delete(url string, opts *RouterOptions) {
+	app.router.addRoute("DELETE", url, opts)
 }
-func Options(url string, controller ControllerInterface, middlewareGroup string, action string) {
-	app.router.addRoute("OPTIONS", url, controller, action, middlewareGroup)
+func Options(url string, opts *RouterOptions) {
+	app.router.addRoute("OPTIONS", url, opts)
 }
-func Upload(url string, controller ControllerInterface, middlewareGroup string, action string) {
-	app.router.addRoute("POST", url, controller, action, middlewareGroup)
-}
+
 
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]

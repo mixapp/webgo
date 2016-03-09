@@ -11,14 +11,14 @@ type (
 	Router struct {
 		routes Routes
 	}
-	Routes map[string]Route
+	Routes map[string]map[string]Route
 	Route  struct {
 		Keys            []string
 		Regex           *regexp.Regexp
 		Pattern         string
 		Controller      reflect.Type
 		Action          string
-		Method          string
+
 		MiddlewareGroup string
 		UploadFiles     bool
 	}
@@ -28,16 +28,23 @@ type (
 		Pattern         string
 		Controller      reflect.Type
 		Action          string
-		Method          string
 		MiddlewareGroup string
+	}
+	RouterOptions struct {
+		MiddlewareGroup string
+		Controller ControllerInterface
+		Action string
+		ContentType string
+		BodyLength int
 	}
 )
 
 func (r *Router) Match(method string, url string) *Match {
 	var result *Match
 
-	for _, route := range r.routes {
-		if !route.Regex.MatchString(url) || route.Method != method {
+	for _, route := range r.routes[method] {
+		fmt.Println("r",route)
+		if !route.Regex.MatchString(url) {
 			continue
 		}
 
@@ -50,14 +57,16 @@ func (r *Router) Match(method string, url string) *Match {
 			}
 			params[route.Keys[i]] = match[i]
 		}
-		result = &Match{params, route.Pattern, route.Controller, route.Action, method, route.MiddlewareGroup}
+		result = &Match{params, route.Pattern, route.Controller, route.Action, route.MiddlewareGroup}
 	}
 
 	return result
 }
-func (r *Router) addRoute(method string, path string, c ControllerInterface, action string, middlewareGroup string) {
-	reflectVal := reflect.ValueOf(c)
-	val := reflectVal.MethodByName(action)
+func (r *Router) addRoute(method string, path string, opts *RouterOptions){
+	//c ControllerInterface, action string, middlewareGroup string
+
+	reflectVal := reflect.ValueOf(opts.Controller)
+	val := reflectVal.MethodByName(opts.Action)
 
 	if !val.IsValid() {
 		// TODO: Заменить панику
@@ -80,6 +89,13 @@ func (r *Router) addRoute(method string, path string, c ControllerInterface, act
 	str = strings.Replace(str, ".", "\\.", -1)
 
 	regex, _ := regexp.Compile(str)
-	r.routes[path] = Route{keys, regex, path, controller, action, method, middlewareGroup, false}
+
+	if r.routes[method] == nil {
+		r.routes[method] = make(map[string]Route)
+	}
+
+	r.routes[method][path] = Route{keys, regex, path, controller, opts.Action, opts.MiddlewareGroup, false}
+
+	fmt.Println(r.routes)
 
 }
