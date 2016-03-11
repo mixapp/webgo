@@ -226,12 +226,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
-	if err != nil {
+	if err != nil && method != "GET" {
 		http.Error(w, "", 400)
 		return
 	}
 
-	if route.Options.ContentType != "" {
+	if route.Options.ContentType != "" && (method == "POST" || method == "PUT") {
 		if route.Options.ContentType != ctx.ContentType {
 			http.Error(w, "", 400)
 			return
