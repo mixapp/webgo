@@ -222,7 +222,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	middlewareGroup = route.Options.MiddlewareGroup
 
 	var err error
-	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: route.Params, RouteOptions:route.Options, Method: method}
+	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: route.Params, Method: method}
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
@@ -253,7 +253,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Инициализация контекста
-	Controller.Init(&ctx)
+	Controller.Init(&ctx, route)
 
 	// Запуск предобработчика
 	if !Controller.Prepare() {

@@ -11,9 +11,10 @@ import (
 type (
 	Controller struct {
 		Ctx *Context
+		Action string
 	}
 	ControllerInterface interface {
-		Init(ctx *Context)
+		Init(ctx *Context, route *Match)
 		Prepare() bool
 		Finish()
 		Error(code int, tpl string)
@@ -30,8 +31,9 @@ type (
 	}
 )
 
-func (c *Controller) Init(ctx *Context) {
+func (c *Controller) Init(ctx *Context, route *Match) {
 	c.Ctx = ctx
+	c.Action = route.Options.Action
 }
 func (c Controller) Prepare() bool {
 	return true
