@@ -31,18 +31,19 @@ func (f *Files) RemoveAll() (err error) {
 }
 
 type Context struct {
-	Response    http.ResponseWriter
-	Request     *http.Request
-	Query       map[string]interface{}
-	Files       Files
-	Params      map[string]string
-	_Body       []byte
-	Body        map[string]interface{}
-	statusCode  int
-	body        []byte
-	Method      string
-	ContentType string
-	error       error
+	Response     http.ResponseWriter
+	Request      *http.Request
+	RouteOptions *RouteOptions
+	Query        map[string]interface{}
+	Files        Files
+	Params       map[string]string
+	_Body        []byte
+	Body         map[string]interface{}
+	statusCode   int
+	body         []byte
+	Method       string
+	ContentType  string
+	error        error
 }
 
 func (c *Context) GetCookie(key string) string {

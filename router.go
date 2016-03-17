@@ -13,26 +13,25 @@ type (
 	}
 	Routes map[string]map[string]Route
 	Route  struct {
-		Keys            []string
-		Regex           *regexp.Regexp
-		Pattern         string
-		ControllerType      reflect.Type
-		Options *RouteOptions
-
+		Keys           []string
+		Regex          *regexp.Regexp
+		Pattern        string
+		ControllerType reflect.Type
+		Options        *RouteOptions
 	}
 	Params map[string]string
 	Match  struct {
-		Params          Params
-		Pattern         string
-		ControllerType      reflect.Type
-		Options *RouteOptions
+		Params         Params
+		Pattern        string
+		ControllerType reflect.Type
+		Options        *RouteOptions
 	}
 	RouteOptions struct {
 		MiddlewareGroup string
-		Controller ControllerInterface
-		Action string
-		ContentType string
-		BodyLength int
+		Controller      ControllerInterface
+		Action          string
+		ContentType     string
+		BodyLength      int
 	}
 )
 
@@ -65,14 +64,14 @@ func (r *Router) Match(method string, url string) *Match {
 
 	return result
 }
-func (r *Router) addRoute(method string, path string, opts *RouteOptions){
+func (r *Router) addRoute(method string, path string, opts *RouteOptions) {
 	//c ControllerInterface, action string, middlewareGroup string
 
 	reflectVal := reflect.ValueOf(opts.Controller)
 	val := reflectVal.MethodByName(opts.Action)
 
 	if !val.IsValid() {
-		LOGGER.Fatal("Action not found: "+opts.Action)
+		LOGGER.Fatal("Action not found: " + opts.Action)
 	}
 
 	controller := reflect.Indirect(reflectVal).Type()

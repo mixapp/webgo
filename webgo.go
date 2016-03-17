@@ -222,7 +222,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	middlewareGroup = route.Options.MiddlewareGroup
 
 	var err error
-	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: route.Params, Method: method}
+	ctx := Context{Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: route.Params, RouteOptions:route.Options, Method: method}
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
@@ -244,7 +244,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", 500)
 		return
 	}
-
 
 	// Парсим запрос
 	code, err := parseRequest(&ctx, app.maxBodyLength)
@@ -320,7 +319,6 @@ func Delete(url string, opts RouteOptions) {
 func Options(url string, opts RouteOptions) {
 	app.router.addRoute("OPTIONS", url, &opts)
 }
-
 
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]
