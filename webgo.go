@@ -194,7 +194,7 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	timeout := time.After(1 * time.Second)
+	timeout := time.After(900 * time.Millisecond)
 
 
 	var vc reflect.Value
