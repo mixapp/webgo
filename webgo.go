@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"flag"
+	"time"
 )
 
 type App struct {
@@ -325,11 +327,23 @@ func GetModule(str string) ModuleInterface {
 }
 
 func Run() {
+	var r *int = flag.Int("r", 0, "read timeout")
+	var w *int = flag.Int("w", 0, "write timeout")
+
 	if CFG["port"] == "" {
 		LOGGER.Fatal("Unknow port")
 	}
-	err := http.ListenAndServe(":"+CFG["port"], &app)
-	if err != nil {
-		LOGGER.Fatal(err)
+	server := http.Server{
+		Addr:         ":"+CFG["port"],
+		ReadTimeout:  time.Duration(*r) * time.Second,
+		WriteTimeout: time.Duration(*w) * time.Second,
+		Handler:&app,
 	}
+
+	server.ListenAndServe()
+
+//	err := http.ListenAndServe(":"+CFG["port"], &app)
+//	if err != nil {
+//		LOGGER.Fatal(err)
+//	}
 }
