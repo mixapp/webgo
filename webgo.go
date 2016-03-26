@@ -340,8 +340,10 @@ func Run() {
 		Handler:&app,
 	}
 
-	server.ListenAndServe()
-
+	err := server.ListenAndServe()
+	if err != nil {
+		LOGGER.Fatal(err)
+	}
 //	err := http.ListenAndServe(":"+CFG["port"], &app)
 //	if err != nil {
 //		LOGGER.Fatal(err)
