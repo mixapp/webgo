@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"flag"
 	"time"
 )
 
@@ -326,16 +327,16 @@ func GetModule(str string) ModuleInterface {
 }
 
 func Run() {
-//	var r *int = flag.Int("r", 1, "read timeout")
-//	var w *int = flag.Int("w", 1, "write timeout")
+	var r *int = flag.Int("r", 1, "read timeout")
+	var w *int = flag.Int("w", 1, "write timeout")
 
 	if CFG["port"] == "" {
 		LOGGER.Fatal("Unknow port")
 	}
 	server := http.Server{
 		Addr:         ":"+CFG["port"],
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
+		ReadTimeout:  time.Duration(*r) * time.Second,
+		WriteTimeout: time.Duration(*w) * time.Second,
 		Handler:&app,
 	}
 
