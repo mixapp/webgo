@@ -194,6 +194,9 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
+	timeout := time.After(1 * time.Second)
+
+
 	var vc reflect.Value
 	var Action reflect.Value
 	var middlewareGroup string
@@ -272,7 +275,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск Экшена
 	in := make([]reflect.Value, 0)
-	Action.Call(in)
+	go Action.Call(in)
 
 	if ctx.ContentType == "multipart/form-data" {
 		err = ctx.Files.RemoveAll()
@@ -295,6 +298,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск постобработчика
 	Controller.Finish()
+
+	select {
+	case <-timeout:
+		Controller.Plain("ABORT")
+		return
+	}
 }
 
 func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
@@ -341,6 +350,7 @@ func Run() {
 	}
 
 	server.SetKeepAlivesEnabled(false)
+
 
 	err := server.ListenAndServe()
 	if err != nil {
