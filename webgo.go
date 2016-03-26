@@ -327,8 +327,8 @@ func GetModule(str string) ModuleInterface {
 }
 
 func Run() {
-	var r *int = flag.Int("r", 0, "read timeout")
-	var w *int = flag.Int("w", 0, "write timeout")
+	var r *int = flag.Int("r", 1, "read timeout")
+	var w *int = flag.Int("w", 1, "write timeout")
 
 	if CFG["port"] == "" {
 		LOGGER.Fatal("Unknow port")
