@@ -340,6 +340,8 @@ func Run() {
 		Handler:&app,
 	}
 
+	server.SetKeepAlivesEnabled(false)
+
 	err := server.ListenAndServe()
 	if err != nil {
 		LOGGER.Fatal(err)
