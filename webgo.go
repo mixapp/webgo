@@ -326,7 +326,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(""))
 		return
 	case <-done:
-		fmt.Println("Done")
 		// TODO: Обработать ошибки
 		if ctx.error != nil {
 			if ctx.code == 0 {
@@ -349,10 +348,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		ctx.Response.WriteHeader(ctx.code)
 		ctx.Response.Write(ctx.output)
-		if ctx.close {
-			return
-		}
-
 		return
 	}
 
