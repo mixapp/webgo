@@ -16,6 +16,8 @@ import (
 	"strings"
 	"flag"
 	"time"
+	"fmt"
+	//"sync"
 )
 
 type App struct {
@@ -192,9 +194,14 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 	return
 }
 
-func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	timeout := time.After(900 * time.Millisecond)
+
+func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	cn, ok := w.(http.CloseNotifier)
+	if !ok {
+		LOGGER.Fatal("don't support CloseNotifier")
+	}
+
 
 
 	var vc reflect.Value
@@ -221,6 +228,13 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", 404)
 		return
 	}
+
+
+	if route.Options.Timeout == 0 {
+		route.Options.Timeout = 2
+	}
+	timeout := time.After(route.Options.Timeout * time.Second)
+	done := make(chan bool)
 
 	vc = reflect.New(route.ControllerType)
 	Action = vc.MethodByName(route.Options.Action)
@@ -250,6 +264,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
+
 	// Парсим запрос
 	code, err := parseRequest(&ctx, app.maxBodyLength)
 	if err != nil {
@@ -273,9 +289,17 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Запуск Экшена
-	in := make([]reflect.Value, 0)
-	go Action.Call(in)
+
+	go func () {
+		in := make([]reflect.Value, 0)
+		Action.Call(in)
+		done <- true
+	}()
+
+	// Запуск постобработчика
+
+	Controller.Finish()
+
 
 	if ctx.ContentType == "multipart/form-data" {
 		err = ctx.Files.RemoveAll()
@@ -289,21 +313,49 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Обрабатываем ошибки
-	if ctx.error != nil {
-		LOGGER.Error(err)
-		http.Error(w, "", 500)
-		return
-	}
-
-	// Запуск постобработчика
-	Controller.Finish()
-
 	select {
 	case <-timeout:
-		Controller.Plain("ABORT")
+		ctx.close = true
+		w.WriteHeader(503)
+		w.Write([]byte(""))
+		return
+	case <-cn.CloseNotify():
+		//TODO: НИХРЕНА НЕПОНЯТНО!!!
+		ctx.close = true
+		w.WriteHeader(503)
+		w.Write([]byte(""))
+		return
+	case <-done:
+		fmt.Println("Done")
+		// TODO: Обработать ошибки
+		if ctx.error != nil {
+			if ctx.code == 0 {
+				ctx.code = 500
+			}
+			ctx.Response.WriteHeader(ctx.code)
+			ctx.Response.Write(ctx.output)
+			return
+		}
+
+		// Проверяем редирект
+		if ctx.IsRedirect(){
+			ctx.Response.WriteHeader(ctx.code)
+			return
+		}
+
+		// Выводим данные
+		if ctx.code == 0 {
+			ctx.code = 200
+		}
+		ctx.Response.WriteHeader(ctx.code)
+		ctx.Response.Write(ctx.output)
+		if ctx.close {
+			return
+		}
+
 		return
 	}
+
 }
 
 func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
@@ -314,7 +366,6 @@ func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
 func RegisterModule(name string, module ModuleInterface) {
 	app.modules.RegisterModule(name, module)
 }
-
 func Get(url string, opts RouteOptions) {
 	app.router.addRoute("GET", url, &opts)
 }
@@ -336,28 +387,29 @@ func GetModule(str string) ModuleInterface {
 }
 
 func Run() {
-	var r *int = flag.Int("r", 1, "read timeout")
-	var w *int = flag.Int("w", 1, "write timeout")
+	var r *int = flag.Int("r", 0, "read timeout")
+	var w *int = flag.Int("w", 0, "write timeout")
 
 	if CFG["port"] == "" {
-		LOGGER.Fatal("Unknow port")
+		CFG["port"] = "80"
 	}
+
+	address := fmt.Sprintf("%s:%s",CFG["host"],CFG["port"])
+	fmt.Println("WebGO start ",address)
+
 	server := http.Server{
-		Addr:         ":"+CFG["port"],
+		Addr:         address,
 		ReadTimeout:  time.Duration(*r) * time.Second,
 		WriteTimeout: time.Duration(*w) * time.Second,
 		Handler:&app,
 	}
 
-	server.SetKeepAlivesEnabled(false)
+	//server.SetKeepAlivesEnabled(false)
 
 
 	err := server.ListenAndServe()
 	if err != nil {
 		LOGGER.Fatal(err)
 	}
-//	err := http.ListenAndServe(":"+CFG["port"], &app)
-//	if err != nil {
-//		LOGGER.Fatal(err)
-//	}
+
 }

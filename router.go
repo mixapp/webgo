@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type (
@@ -32,6 +33,7 @@ type (
 		Action          string
 		ContentType     string
 		BodyLength      int
+		Timeout time.Duration
 	}
 )
 

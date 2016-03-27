@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 	"strconv"
 )
 
@@ -27,8 +26,19 @@ type (
 		Render(tpl_name string, data interface{})
 		Json(data interface{}, unicode bool)
 		Plain(data string)
+
+		Error504(tpl string)
+
 	}
 )
+
+func (c *Controller) Error504(tpl string) {
+	if tpl == "" {
+		tpl = "504 Gateway Timeout"
+	}
+	c.Ctx.output = []byte(tpl)
+	c.Ctx.code = 504
+}
 
 func (c *Controller) Init(ctx *Context) {
 	c.Ctx = ctx
@@ -38,7 +48,8 @@ func (c Controller) Prepare() bool {
 }
 func (c Controller) Finish() {}
 func (c Controller) Error(code int, data string) {
-	http.Error(c.Ctx.Response, data, code)
+	c.Ctx.output = []byte(data)
+	c.Ctx.code = code
 }
 
 func (c Controller) GetHeader(key string) string {
@@ -47,44 +58,33 @@ func (c Controller) GetHeader(key string) string {
 func (c Controller) SetHeader(key string, val string) {
 	c.Ctx.Response.Header().Set(key, val)
 }
-func (c *Controller) SetStatusCode(code int) {
-	c.Ctx.statusCode = code
+func (c Controller) SetStatusCode(code int) {
+	c.Ctx.code = code
 }
 
 func (c Controller) Redirect(location string, code int) {
-	http.Redirect(c.Ctx.Response, c.Ctx.Request, location, code)
+	c.SetStatusCode(code)
+	c.SetHeader("Location", location)
 }
 
 func (c Controller) Render(tpl_name string, data interface{}) {
-	var err error
-
-	if c.Ctx.statusCode != 0 {
-		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
-	}
-
 	bytes := bytes.NewBufferString("")
-	err = app.templates.ExecuteTemplate(bytes, tpl_name+".html", data)
-	if err != nil {
-		c.Ctx.error = err
+	c.Ctx.error = app.templates.ExecuteTemplate(bytes, tpl_name+".html", data)
+	if c.Ctx.error != nil {
+		return
 	}
-	c.Ctx.body, err = ioutil.ReadAll(bytes)
-	c.Ctx.Response.Write(c.Ctx.body)
+	c.Ctx.output, c.Ctx.error = ioutil.ReadAll(bytes)
 }
 
 func (c Controller) Json(data interface{}, unicode bool) {
-	if c.Ctx.statusCode != 0 {
-		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
-	}
-
-	c.Ctx.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	var content []byte
-	content, err := json.Marshal(data)
-	if err != nil {
-		c.Ctx.error = err
+	c.Ctx.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
+	c.Ctx.output, c.Ctx.error = json.Marshal(data)
+	if c.Ctx.error != nil {
+		return
 	}
 
 	if !unicode {
-		c.Ctx.Response.Write(content)
 		return
 	}
 
@@ -98,13 +98,11 @@ func (c Controller) Json(data interface{}, unicode bool) {
 			jsons += "\\u" + strconv.FormatInt(int64(rint), 16)
 		}
 	}
-
-	c.Ctx.Response.Write([]byte(jsons))
+	c.Ctx.output = []byte(jsons)
 }
 func (c Controller) Plain(data string) {
-	if c.Ctx.statusCode != 0 {
-		c.Ctx.Response.WriteHeader(c.Ctx.statusCode)
-	}
 	c.Ctx.Response.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	c.Ctx.Response.Write([]byte(data))
+	c.Ctx.output = []byte(data)
 }
+
+
