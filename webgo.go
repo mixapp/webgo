@@ -197,10 +197,10 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cn, ok := w.(http.CloseNotifier)
-	if !ok {
-		LOGGER.Fatal("don't support CloseNotifier")
-	}
+	//cn, ok := w.(http.CloseNotifier)
+	//if !ok {
+	//	LOGGER.Fatal("don't support CloseNotifier")
+	//}
 
 
 
@@ -233,8 +233,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if route.Options.Timeout == 0 {
 		route.Options.Timeout = 2
 	}
-	timeout := time.After(route.Options.Timeout * time.Second)
-	done := make(chan bool)
+	//timeout := time.After(route.Options.Timeout * time.Second)
+	//done := make(chan bool)
 
 	vc = reflect.New(route.ControllerType)
 	Action = vc.MethodByName(route.Options.Action)
@@ -289,12 +289,13 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-
-	go func () {
-		in := make([]reflect.Value, 0)
-		Action.Call(in)
-		done <- true
-	}()
+	in := make([]reflect.Value, 0)
+	Action.Call(in)
+	//go func () {
+	//	in := make([]reflect.Value, 0)
+	//	Action.Call(in)
+	//	done <- true
+	//}()
 
 	// Запуск постобработчика
 
@@ -313,43 +314,66 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	select {
-	case <-timeout:
-		ctx.close = true
-		w.WriteHeader(503)
-		w.Write([]byte(""))
-		return
-	case <-cn.CloseNotify():
-		//TODO: НИХРЕНА НЕПОНЯТНО!!!
-		ctx.close = true
-		w.WriteHeader(503)
-		w.Write([]byte(""))
-		return
-	case <-done:
-		// TODO: Обработать ошибки
-		if ctx.error != nil {
-			if ctx.code == 0 {
-				ctx.code = 500
-			}
-			ctx.Response.WriteHeader(ctx.code)
-			ctx.Response.Write(ctx.output)
-			return
-		}
-
-		// Проверяем редирект
-		if ctx.IsRedirect(){
-			ctx.Response.WriteHeader(ctx.code)
-			return
-		}
-
-		// Выводим данные
+	if ctx.error != nil {
 		if ctx.code == 0 {
-			ctx.code = 200
+			ctx.code = 500
 		}
 		ctx.Response.WriteHeader(ctx.code)
 		ctx.Response.Write(ctx.output)
 		return
 	}
+
+	// Проверяем редирект
+	if ctx.IsRedirect(){
+		ctx.Response.WriteHeader(ctx.code)
+		return
+	}
+
+	// Выводим данные
+	if ctx.code == 0 {
+		ctx.code = 200
+	}
+	ctx.Response.WriteHeader(ctx.code)
+	ctx.Response.Write(ctx.output)
+	return
+
+	//select {
+	//case <-timeout:
+	//	ctx.close = true
+	//	w.WriteHeader(503)
+	//	w.Write([]byte(""))
+	//	return
+	//case <-cn.CloseNotify():
+	//	//TODO: НИХРЕНА НЕПОНЯТНО!!!
+	//	ctx.close = true
+	//	w.WriteHeader(503)
+	//	w.Write([]byte(""))
+	//	return
+	//case <-done:
+	//	// TODO: Обработать ошибки
+	//	if ctx.error != nil {
+	//		if ctx.code == 0 {
+	//			ctx.code = 500
+	//		}
+	//		ctx.Response.WriteHeader(ctx.code)
+	//		ctx.Response.Write(ctx.output)
+	//		return
+	//	}
+	//
+	//	// Проверяем редирект
+	//	if ctx.IsRedirect(){
+	//		ctx.Response.WriteHeader(ctx.code)
+	//		return
+	//	}
+	//
+	//	// Выводим данные
+	//	if ctx.code == 0 {
+	//		ctx.code = 200
+	//	}
+	//	ctx.Response.WriteHeader(ctx.code)
+	//	ctx.Response.Write(ctx.output)
+	//	return
+	//}
 
 }
 
