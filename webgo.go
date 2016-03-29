@@ -278,6 +278,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Запуск предобработчика
 	if !Controller.Prepare() {
+		Controller.exec()
 		return
 	}
 
@@ -314,28 +315,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if ctx.error != nil {
-		if ctx.code == 0 {
-			ctx.code = 500
-		}
-		ctx.Response.WriteHeader(ctx.code)
-		ctx.Response.Write(ctx.output)
-		return
-	}
-
-	// Проверяем редирект
-	if ctx.IsRedirect(){
-		ctx.Response.WriteHeader(ctx.code)
-		return
-	}
-
-	// Выводим данные
-	if ctx.code == 0 {
-		ctx.code = 200
-	}
-	ctx.Response.WriteHeader(ctx.code)
-	ctx.Response.Write(ctx.output)
-	return
+	Controller.exec()
 
 	//select {
 	//case <-timeout:

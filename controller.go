@@ -29,6 +29,8 @@ type (
 
 		Error504(tpl string)
 
+		exec()
+
 	}
 )
 
@@ -106,3 +108,27 @@ func (c Controller) Plain(data string) {
 }
 
 
+func (c Controller) exec() {
+	if c.Ctx.error != nil {
+		if c.Ctx.code == 0 {
+			c.Ctx.code = 500
+		}
+		c.Ctx.Response.WriteHeader(c.Ctx.code)
+		c.Ctx.Response.Write(c.Ctx.output)
+		return
+	}
+
+	// Проверяем редирект
+	if c.Ctx.IsRedirect(){
+		c.Ctx.Response.WriteHeader(c.Ctx.code)
+		return
+	}
+
+	// Выводим данные
+	if c.Ctx.code == 0 {
+		c.Ctx.code = 200
+	}
+	c.Ctx.Response.WriteHeader(c.Ctx.code)
+	c.Ctx.Response.Write(c.Ctx.output)
+	return
+}
