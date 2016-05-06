@@ -211,12 +211,13 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
 
-	// Отдаем статику если был запрошен файл
+	// TODO как отдавать статику?
+	/*// Отдаем статику если был запрошен файл
 	ext := filepath.Ext(path)
 	if ext != "" {
 		http.ServeFile(w, r, app.staticDir+filepath.Clean(path))
 		return
-	}
+	}*/
 
 	if len(path) > 1 && path[len(path)-1:] == "/" {
 		http.Redirect(w, r, path[:len(path)-1], 301)

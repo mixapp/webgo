@@ -175,7 +175,7 @@ func (l *Logger) Log(err ...interface{}) {
 func (l *Logger) Error(err ...interface{}) {
 
 	msg := l.makeErrorMessage(err)
-	for _, pID := range l.logProviders {
+	for _, pID := range l.errorProviders {
 		p, bFound := l.providers[pID]
 		if bFound {
 			(*p).Error(msg)
@@ -186,7 +186,7 @@ func (l *Logger) Error(err ...interface{}) {
 func (l *Logger) Debug(err ...interface{}) {
 	msg := l.makeMessage(err)
 
-	for _, pID := range l.logProviders {
+	for _, pID := range l.debugProviders {
 		p, bFound := l.providers[pID]
 		if bFound {
 			(*p).Debug(msg)
@@ -197,7 +197,7 @@ func (l *Logger) Debug(err ...interface{}) {
 func (l *Logger) Fatal(err ...interface{}) {
 	msg := l.makeErrorMessage(err)
 
-	for _, pID := range l.logProviders {
+	for _, pID := range l.fatalProviders {
 		p, bFound := l.providers[pID]
 		if bFound {
 			(*p).Fatal(msg)
