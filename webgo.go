@@ -41,8 +41,6 @@ var LOGGER *Logger
 
 func init() {
 
-	var err error
-
 	// Init LOGGER
 	LOGGER = NewLogger()
 
@@ -72,16 +70,9 @@ func init() {
 	app.staticDir = "public"
 	app.modules = Modules{}
 
-	app.workDir, err = os.Getwd()
+	app.workDir, _ = os.Getwd()
 	app.tmpDir = app.workDir + "/tmp"
-
-	if CFG.Int("maxBodyLength") <= 0 {
-		panic("maxBodyLength is empty")
-	}
-	app.maxBodyLength = int64(CFG.Int("maxBodyLength"))
-	if err != nil {
-		os.Exit(1)
-	}
+	app.maxBodyLength = 131072
 
 	//TODO: Проверить папку tmp, создать если необходимо
 }
@@ -250,7 +241,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Парсим запрос
-	code, err := parseRequest(&ctx, app.maxBodyLength)
+	var maxBodyLength int64 = app.maxBodyLength
+	if route.Options.BodyLength > 0 {
+		maxBodyLength = route.Options.BodyLength
+	}
+
+	code, err := parseRequest(&ctx, maxBodyLength)
 	if err != nil {
 		http.Error(w, "", code)
 		return
@@ -371,17 +367,18 @@ func Run() {
 	var r *int = flag.Int("r", 0, "read timeout")
 	var w *int = flag.Int("w", 0, "write timeout")
 
-	port := CFG.Str("port")
-	if port == "" {
-		port = "80"
+	port := CFG.Int("port")
+
+	if port == 0 {
+		port = 80
 	}
 
 	host := CFG.Str("host")
 	if host == "" {
-		port = "127.0.0.1"
+		host = "127.0.0.1"
 	}
 
-	address := fmt.Sprintf("%s:%s", host, port)
+	address := fmt.Sprintf("%s:%d", host, port)
 	fmt.Println("WebGO start ", address)
 
 	server := http.Server{

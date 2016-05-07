@@ -32,7 +32,7 @@ type (
 		Controller      ControllerInterface
 		Action          string
 		ContentType     string
-		BodyLength      int
+		BodyLength      int64
 		Timeout time.Duration
 	}
 )

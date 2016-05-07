@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	configFileName    = "config"
+	configFileName    = "config.json"
 	CFG_ERROR_TIMEOUT = "errorTimeout"
 	CFG_SMTP_HOST     = "smtpHost"
 	CFG_SMTP_PORT     = "smtpPort"
@@ -58,7 +58,19 @@ func (cfg *Config) Bool(key string) (res bool) {
 
 func (cfg *Config) Int(key string) (res int) {
 
-	res, _ = cfg.data[key].(int)
+	f, ok := cfg.data[key].(float64)
+	if ok {
+		res = int(f)
+	}
+	return
+}
+
+func (cfg *Config) Int64(key string) (res int64) {
+
+	f, ok := cfg.data[key].(float64)
+	if ok {
+		res = int64(f)
+	}
 	return
 }
 
