@@ -3,6 +3,8 @@ package webgo
 import (
 	"encoding/json"
 	"errors"
+	"flag"
+	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -12,11 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
-	"flag"
 	"time"
-	"fmt"
 	//"sync"
 )
 
@@ -38,21 +37,11 @@ const (
 )
 
 var app App
-var CFG config
 var LOGGER *Logger
 
 func init() {
 
 	var err error
-
-	// Init CFG
-	CFG = make(config)
-
-	err = CFG.Read()
-
-	if err != nil {
-		panic(err)
-	}
 
 	// Init LOGGER
 	LOGGER = NewLogger()
@@ -86,10 +75,10 @@ func init() {
 	app.workDir, err = os.Getwd()
 	app.tmpDir = app.workDir + "/tmp"
 
-	if CFG["maxBodyLength"] == "" {
+	if CFG.Int("maxBodyLength") <= 0 {
 		panic("maxBodyLength is empty")
 	}
-	app.maxBodyLength, err = strconv.ParseInt(CFG["maxBodyLength"], 10, 64)
+	app.maxBodyLength = int64(CFG.Int("maxBodyLength"))
 	if err != nil {
 		os.Exit(1)
 	}
@@ -194,15 +183,11 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 	return
 }
 
-
-
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//cn, ok := w.(http.CloseNotifier)
 	//if !ok {
 	//	LOGGER.Fatal("don't support CloseNotifier")
 	//}
-
-
 
 	var vc reflect.Value
 	var Action reflect.Value
@@ -229,7 +214,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", 404)
 		return
 	}
-
 
 	if route.Options.Timeout == 0 {
 		route.Options.Timeout = 2
@@ -264,8 +248,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", 500)
 		return
 	}
-
-
 
 	// Парсим запрос
 	code, err := parseRequest(&ctx, app.maxBodyLength)
@@ -302,7 +284,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Запуск постобработчика
 
 	Controller.Finish()
-
 
 	if ctx.ContentType == "multipart/form-data" {
 		err = ctx.Files.RemoveAll()
@@ -390,22 +371,27 @@ func Run() {
 	var r *int = flag.Int("r", 0, "read timeout")
 	var w *int = flag.Int("w", 0, "write timeout")
 
-	if CFG["port"] == "" {
-		CFG["port"] = "80"
+	port := CFG.Str("port")
+	if port == "" {
+		port = "80"
 	}
 
-	address := fmt.Sprintf("%s:%s",CFG["host"],CFG["port"])
-	fmt.Println("WebGO start ",address)
+	host := CFG.Str("host")
+	if host == "" {
+		port = "127.0.0.1"
+	}
+
+	address := fmt.Sprintf("%s:%s", host, port)
+	fmt.Println("WebGO start ", address)
 
 	server := http.Server{
 		Addr:         address,
 		ReadTimeout:  time.Duration(*r) * time.Second,
 		WriteTimeout: time.Duration(*w) * time.Second,
-		Handler:&app,
+		Handler:      &app,
 	}
 
 	//server.SetKeepAlivesEnabled(false)
-
 
 	err := server.ListenAndServe()
 	if err != nil {

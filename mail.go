@@ -59,11 +59,11 @@ func NewMail(to string, subject string, body string) *Message {
 
 func (m *Message) SendMail() error {
 
-	m.host = CFG[CFG_SMTP_HOST]
-	m.port = CFG[CFG_SMTP_PORT]
-	m.user = CFG[CFG_SMTP_USER]
-	m.password = CFG[CFG_SMTP_PASSWORD]
-	m.From = CFG[CFG_SMTP_FROM]
+	m.host = CFG.Str(CFG_SMTP_HOST)
+	m.port = CFG.Str(CFG_SMTP_PORT)
+	m.user = CFG.Str(CFG_SMTP_USER)
+	m.password = CFG.Str(CFG_SMTP_PASSWORD)
+	m.From = CFG.Str(CFG_SMTP_FROM)
 
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString("From: " + m.From + "\r\n")

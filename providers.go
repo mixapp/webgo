@@ -43,25 +43,25 @@ func (p emailProvider) GetID() string {
 }
 
 func (p emailProvider) Log(msg []byte) {
-	mail := NewMail(CFG[CFG_ADMIN_EMAIL], "Log message", string(msg))
+	mail := NewMail(CFG.Str(CFG_ADMIN_EMAIL), "Log message", string(msg))
 	mail.BodyContentType = "text/plain"
 	mail.SendMail()
 }
 
 func (p emailProvider) Error(msg []byte) {
-	mail := NewMail(CFG[CFG_ADMIN_EMAIL], "Error message", string(msg))
+	mail := NewMail(CFG.Str(CFG_ADMIN_EMAIL), "Error message", string(msg))
 	mail.BodyContentType = "text/plain"
 	mail.SendMail()
 }
 
 func (p emailProvider) Fatal(msg []byte) {
-	mail := NewMail(CFG[CFG_ADMIN_EMAIL], "Fatal message", string(msg))
+	mail := NewMail(CFG.Str(CFG_ADMIN_EMAIL), "Fatal message", string(msg))
 	mail.BodyContentType = "text/plain"
 	mail.SendMail()
 }
 
 func (p emailProvider) Debug(msg []byte) {
-	mail := NewMail(CFG[CFG_ADMIN_EMAIL], "Debug message", string(msg))
+	mail := NewMail(CFG.Str(CFG_ADMIN_EMAIL), "Debug message", string(msg))
 	mail.BodyContentType = "text/plain"
 	mail.SendMail()
 }
