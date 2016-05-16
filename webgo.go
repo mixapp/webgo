@@ -363,6 +363,23 @@ func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
 
+func GetRoutes() (routes map[string][]string) {
+
+	routes = make(map[string][]string)
+
+	for key, val := range app.router.routes {
+		if routes[key] == nil {
+			routes[key] = make([]string, 0)
+		}
+
+		for _, route := range val {
+			routes[key] = append(routes[key], route.Options.Action)
+		}
+	}
+
+	return
+}
+
 func Run() {
 	var r *int = flag.Int("r", 0, "read timeout")
 	var w *int = flag.Int("w", 0, "write timeout")
