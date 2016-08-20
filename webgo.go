@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 	//"sync"
+	"bytes"
 )
 
 type App struct {
@@ -362,7 +363,19 @@ func Options(url string, opts RouteOptions) {
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
+func Mail (address string, subject string, tpl string, model interface{}) (err error) {
+	var message []byte
+	bytes := bytes.NewBufferString("")
+	err = app.templates.ExecuteTemplate(bytes, tpl+".html", model)
+	if err != nil {
+		return
+	}
+	message, err = ioutil.ReadAll(bytes)
 
+	mail := NewMail(address, subject, string(message))
+	err = mail.SendMail()
+	return
+}
 func Run() {
 	var r *int = flag.Int("r", 0, "read timeout")
 	var w *int = flag.Int("w", 0, "write timeout")
