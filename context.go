@@ -39,12 +39,13 @@ type Context struct {
 	Params      map[string]string
 	_Body       []byte
 	Body        map[string]interface{}
-	code  int
-	output []byte
+	User        map[string]interface{}
+	code        int
+	output      []byte
 	Method      string
 	ContentType string
 	error       error
-	close bool
+	close       bool
 }
 
 func (c *Context) GetCookie(key string) string {
@@ -235,7 +236,7 @@ func (c *Context) ValidateSchema(schema interface{}) (err error) {
 	return
 }
 
-func (c *Context) IsRedirect() bool{
+func (c *Context) IsRedirect() bool {
 	return c.code == 301 || c.code == 302 || c.code == 303 || c.code == 307
 }
 

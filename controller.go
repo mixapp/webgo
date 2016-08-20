@@ -30,7 +30,6 @@ type (
 		Error504(tpl string)
 
 		exec()
-
 	}
 )
 
@@ -107,7 +106,6 @@ func (c Controller) Plain(data string) {
 	c.Ctx.output = []byte(data)
 }
 
-
 func (c Controller) exec() {
 	if c.Ctx.error != nil {
 		if c.Ctx.code == 0 {
@@ -119,7 +117,7 @@ func (c Controller) exec() {
 	}
 
 	// Проверяем редирект
-	if c.Ctx.IsRedirect(){
+	if c.Ctx.IsRedirect() {
 		c.Ctx.Response.WriteHeader(c.Ctx.code)
 		return
 	}

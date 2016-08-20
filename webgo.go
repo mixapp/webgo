@@ -363,7 +363,7 @@ func Options(url string, opts RouteOptions) {
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
-func Mail (address string, subject string, tpl string, model interface{}) (err error) {
+func Mail(address string, subject string, tpl string, model interface{}) (err error) {
 	var message []byte
 	bytes := bytes.NewBufferString("")
 	err = app.templates.ExecuteTemplate(bytes, tpl+".html", model)
