@@ -163,8 +163,11 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 		}
 
 	default:
-		err = errors.New("Bad Request")
-		errorCode = 400
+		if ctx.Request.ContentLength > 0 {
+			err = errors.New("Bad Request")
+			errorCode = 400
+		}
+
 		return
 	}
 
@@ -222,16 +225,10 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
-	if err != nil && method != "GET" {
+
+	if ctx.Request.ContentLength > 0 && (err != nil || route.Options.ContentType != ctx.ContentType){
 		http.Error(w, "", 400)
 		return
-	}
-
-	if route.Options.ContentType != "" && (method == "POST" || method == "PUT") {
-		if route.Options.ContentType != ctx.ContentType {
-			http.Error(w, "", 400)
-			return
-		}
 	}
 
 	Controller, ok := vc.Interface().(ControllerInterface)
