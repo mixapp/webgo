@@ -90,19 +90,15 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 	}()
 	ctx.Request.Body = http.MaxBytesReader(ctx.Response, ctx.Request.Body, limit)
 
-	if ctx.Request.Method == "GET" {
-		err = ctx.Request.ParseForm()
-		if err != nil {
-			errorCode = 400
-			return
-		}
-
-		// Копируем данные
-		for i := range ctx.Request.Form {
-			ctx.Query[i] = ctx.Request.Form[i]
-		}
-
+	err = ctx.Request.ParseForm()
+	if err != nil {
+		errorCode = 400
 		return
+	}
+
+	// Копируем данные
+	for i := range ctx.Request.Form {
+		ctx.Query[i] = ctx.Request.Form[i]
 	}
 
 	switch ctx.ContentType {
