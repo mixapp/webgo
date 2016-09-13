@@ -46,6 +46,7 @@ type Context struct {
 	ContentType string
 	error       error
 	close       bool
+	isSendFile bool  // Это костыль, нужно переделать, чтобы не поломать АПИ текущих проектов
 }
 
 func (c *Context) GetCookie(key string) string {

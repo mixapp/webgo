@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"strconv"
+	"os"
+	"net/http"
+	"io"
+	"path/filepath"
 )
 
 type (
@@ -23,6 +27,7 @@ type (
 
 		Redirect(location string, code int)
 
+		SendFile (filepath string) (err error)
 		Render(tpl_name string, data interface{})
 		Json(data interface{}, unicode bool)
 		Plain(data string)
@@ -66,6 +71,35 @@ func (c Controller) SetStatusCode(code int) {
 func (c Controller) Redirect(location string, code int) {
 	c.SetStatusCode(code)
 	c.SetHeader("Location", location)
+}
+
+func (c Controller) SendFile (path string) (err error) {
+	c.Ctx.isSendFile = true
+	file, err := os.Open(path)
+	defer file.Close()
+
+	if err != nil {
+		return
+	}
+
+	FileHeader := make([]byte, 512)
+	file.Read(FileHeader)
+	FileContentType := http.DetectContentType(FileHeader)
+
+	// Получаем размер файла
+	FileStat, _ := file.Stat()
+	FileSize := strconv.FormatInt(FileStat.Size(), 10)
+
+	Filename := filepath.Base(path)
+
+	c.Ctx.Response.Header().Set("Content-Disposition", "attachment; filename="+Filename)
+	c.Ctx.Response.Header().Set("Content-Type", FileContentType)
+	c.Ctx.Response.Header().Set("Content-Length", FileSize)
+
+	file.Seek(0, 0)
+	io.Copy(c.Ctx.Response, file)
+
+	return
 }
 
 func (c Controller) Render(tpl_name string, data interface{}) {
@@ -125,6 +159,10 @@ func (c Controller) exec() {
 	// Выводим данные
 	if c.Ctx.code == 0 {
 		c.Ctx.code = 200
+	}
+
+	if c.Ctx.isSendFile {
+		return
 	}
 	c.Ctx.Response.WriteHeader(c.Ctx.code)
 	c.Ctx.Response.Write(c.Ctx.output)
