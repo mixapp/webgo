@@ -28,8 +28,8 @@ var SALT string = "SsUper!Se@cretKeyBPM2_0Ugsk&EEdh" //32 bytes
 var CFG Config
 
 type Config struct {
-	data 	map[string]interface{}
-	workDir	string
+	data    map[string]interface{}
+	workDir string
 }
 
 func init() {

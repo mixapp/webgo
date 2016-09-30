@@ -33,7 +33,7 @@ type (
 		Action          string
 		ContentType     string
 		BodyLength      int64
-		Timeout time.Duration
+		Timeout         time.Duration
 	}
 )
 

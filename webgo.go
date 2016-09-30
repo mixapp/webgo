@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 	//"sync"
+	"bytes"
 )
 
 type App struct {
@@ -89,19 +90,15 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 	}()
 	ctx.Request.Body = http.MaxBytesReader(ctx.Response, ctx.Request.Body, limit)
 
-	if ctx.Request.Method == "GET" {
-		err = ctx.Request.ParseForm()
-		if err != nil {
-			errorCode = 400
-			return
-		}
-
-		// Копируем данные
-		for i := range ctx.Request.Form {
-			ctx.Query[i] = ctx.Request.Form[i]
-		}
-
+	err = ctx.Request.ParseForm()
+	if err != nil {
+		errorCode = 400
 		return
+	}
+
+	// Копируем данные
+	for i := range ctx.Request.Form {
+		ctx.Query[i] = ctx.Request.Form[i]
 	}
 
 	switch ctx.ContentType {
@@ -162,8 +159,11 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 		}
 
 	default:
-		err = errors.New("Bad Request")
-		errorCode = 400
+		if ctx.Request.ContentLength > 0 {
+			err = errors.New("Bad Request")
+			errorCode = 400
+		}
+
 		return
 	}
 
@@ -221,16 +221,10 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
-	if err != nil && method != "GET" {
+
+	if ctx.Request.ContentLength > 0 && (err != nil || route.Options.ContentType != ctx.ContentType){
 		http.Error(w, "", 400)
 		return
-	}
-
-	if route.Options.ContentType != "" && (method == "POST" || method == "PUT") {
-		if route.Options.ContentType != ctx.ContentType {
-			http.Error(w, "", 400)
-			return
-		}
 	}
 
 	Controller, ok := vc.Interface().(ControllerInterface)
@@ -362,21 +356,17 @@ func Options(url string, opts RouteOptions) {
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
-
-func GetRoutes() (routes map[string][]string) {
-
-	routes = make(map[string][]string)
-
-	for key, val := range app.router.routes {
-		if routes[key] == nil {
-			routes[key] = make([]string, 0)
-		}
-
-		for _, route := range val {
-			routes[key] = append(routes[key], route.Options.Action)
-		}
+func Mail(address string, subject string, tpl string, model interface{}) (err error) {
+	var message []byte
+	bytes := bytes.NewBufferString("")
+	err = app.templates.ExecuteTemplate(bytes, tpl+".html", model)
+	if err != nil {
+		return
 	}
+	message, err = ioutil.ReadAll(bytes)
 
+	mail := NewMail(address, subject, string(message))
+	err = mail.SendMail()
 	return
 }
 
