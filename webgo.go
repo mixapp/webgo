@@ -1,6 +1,11 @@
 package webgo
 
 import (
+	"github.com/IntelliQru/config"
+	"github.com/IntelliQru/logger"
+	"github.com/IntelliQru/mail"
+
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,12 +17,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
 	//"sync"
-	"bytes"
 )
 
 type App struct {
@@ -37,33 +42,46 @@ const (
 	CT_MULTIPART = "multipart/form-data"
 )
 
-var app App
-var LOGGER *Logger
+var (
+	app            App
+	mailSmtpClient *mail.SmtpClient
+	CFG            *config.Config
+	LOGGER         *logger.Logger
+)
 
 func init() {
 
-	// Init LOGGER
-	LOGGER = NewLogger()
+	// Init config
 
-	cp := consoleProvider{}
-	ep := emailProvider{}
+	if cfg, err := config.NewConfig(); err == nil {
+		CFG = cfg
+	} else {
+		panic(err.Error())
+	}
 
+	// Init logger
+
+	cp := logger.ConsoleProvider{}
+
+	LOGGER = logger.NewLogger()
 	LOGGER.RegisterProvider(cp)
-	LOGGER.RegisterProvider(ep)
 
-	LOGGER.AddLogProvider(PROVIDER_CONSOLE)
-	LOGGER.AddErrorProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)
-	LOGGER.AddFatalProvider(PROVIDER_CONSOLE, PROVIDER_EMAIL)
-	LOGGER.AddDebugProvider(PROVIDER_CONSOLE)
+	LOGGER.AddLogProvider(cp.GetID())
+	LOGGER.AddErrorProvider(cp.GetID(), cp.GetID())
+	LOGGER.AddFatalProvider(cp.GetID(), cp.GetID())
+	LOGGER.AddDebugProvider(cp.GetID())
 
-	// Init App
+	// Init aplication
+
 	templates := template.New("template")
-	filepath.Walk("templates", func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".html") {
-			templates.ParseFiles(path)
+	filepath.Walk("templates", func(pathToFile string, info os.FileInfo, err error) error {
+
+		if path.Ext(pathToFile) == ".html" {
+			templates.ParseFiles(pathToFile)
 		}
 		return nil
 	})
+
 	app = App{}
 	app.router = Router{make(Routes)}
 	app.definitions = Definitions{}
@@ -72,7 +90,7 @@ func init() {
 	app.modules = Modules{}
 
 	app.workDir, _ = os.Getwd()
-	app.tmpDir = app.workDir + "/tmp"
+	app.tmpDir = path.Join(app.workDir, "tmp")
 	app.maxBodyLength = 131072
 
 	//TODO: Проверить папку tmp, создать если необходимо
@@ -103,6 +121,7 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 
 	switch ctx.ContentType {
 	case CT_JSON:
+		defer ctx.Request.Body.Close()
 		body, err = ioutil.ReadAll(ctx.Request.Body)
 		if err != nil {
 			errorCode = 400
@@ -115,10 +134,11 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 			errorCode = 400
 			return
 		}
+
 		ctx._Body = body
 		ctx.Body = data.(map[string]interface{})
-
 		return
+
 	case CT_FORM:
 		err = ctx.Request.ParseForm()
 		if err != nil {
@@ -143,7 +163,7 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 				}
 
 				var outfile *os.File
-				if outfile, err = os.Create(app.tmpDir + "/" + hdr.Filename); nil != err {
+				if outfile, err = os.Create(path.Join(app.tmpDir, hdr.Filename)); nil != err {
 					errorCode = 500
 					return
 				}
@@ -195,7 +215,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}*/
 
-	if len(path) > 1 && path[len(path)-1:] == "/" {
+	if len(path) > 1 && strings.HasSuffix(path, "/") {
 		http.Redirect(w, r, path[:len(path)-1], 301)
 		return
 	}
@@ -217,12 +237,19 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	middlewareGroup = route.Options.MiddlewareGroup
 
 	var err error
-	ctx := Context{Action: route.Options.Action, Response: w, Request: r, Query: make(map[string]interface{}), Body: make(map[string]interface{}), Params: route.Params, Method: method}
+	ctx := Context{
+		Action:   route.Options.Action,
+		Response: w,
+		Request:  r,
+		Query:    make(map[string]interface{}),
+		Body:     make(map[string]interface{}),
+		Params:   route.Params,
+		Method:   method,
+	}
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
-
-	if ctx.Request.ContentLength > 0 && (err != nil || route.Options.ContentType != ctx.ContentType){
+	if ctx.Request.ContentLength > 0 && (err != nil || route.Options.ContentType != ctx.ContentType) {
 		http.Error(w, "", 400)
 		return
 	}
@@ -356,17 +383,36 @@ func Options(url string, opts RouteOptions) {
 func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
+
 func Mail(address string, subject string, tpl string, model interface{}) (err error) {
-	var message []byte
-	bytes := bytes.NewBufferString("")
-	err = app.templates.ExecuteTemplate(bytes, tpl+".html", model)
+
+	if mailSmtpClient == nil {
+		mailSmtpClient = &mail.SmtpClient{
+			Host:     CFG.Str("smtp_host"),
+			Port:     CFG.Str("smtp_port"),
+			User:     CFG.Str("smtp_user"),
+			Password: CFG.Str("smtp_password"),
+			From:     CFG.Str("smtp_from"),
+		}
+
+		if len(mailSmtpClient.Host) == 0 {
+			err = errors.New("Failed smpt client settings. The mail can't be sent.")
+			return
+		}
+	}
+
+	buffer := bytes.NewBufferString("")
+	err = app.templates.ExecuteTemplate(buffer, tpl+".html", model)
 	if err != nil {
 		return
 	}
-	message, err = ioutil.ReadAll(bytes)
 
-	mail := NewMail(address, subject, string(message))
-	err = mail.SendMail()
+	message := mail.NewMessage(mailSmtpClient, address, subject, buffer.String())
+	err = message.SendMail()
+	if err != nil {
+		return
+	}
+
 	return
 }
 
