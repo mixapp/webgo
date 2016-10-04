@@ -52,11 +52,18 @@ var (
 func init() {
 
 	// Init config
+	{
+		var err error
+		cfg, err := config.NewConfig()
+		if err == nil {
+			err = cfg.ReadConfig()
+		}
 
-	if cfg, err := config.NewConfig(); err == nil {
-		CFG = cfg
-	} else {
-		panic(err.Error())
+		if err != nil {
+			panic(err.Error())
+		} else {
+			CFG = cfg
+		}
 	}
 
 	// Init logger
@@ -67,8 +74,8 @@ func init() {
 	LOGGER.RegisterProvider(cp)
 
 	LOGGER.AddLogProvider(cp.GetID())
-	LOGGER.AddErrorProvider(cp.GetID(), cp.GetID())
-	LOGGER.AddFatalProvider(cp.GetID(), cp.GetID())
+	LOGGER.AddErrorProvider(cp.GetID())
+	LOGGER.AddFatalProvider(cp.GetID())
 	LOGGER.AddDebugProvider(cp.GetID())
 
 	// Init aplication
