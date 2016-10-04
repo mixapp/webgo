@@ -53,7 +53,6 @@ func init() {
 
 	// Init config
 	{
-		var err error
 		cfg, err := config.NewConfig()
 		if err == nil {
 			err = cfg.ReadConfig()
