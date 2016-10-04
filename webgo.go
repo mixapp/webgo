@@ -398,7 +398,7 @@ func Mail(address string, subject string, tpl string, model interface{}) (err er
 			Host:     CFG.Str("smtp_host"),
 			Port:     CFG.Str("smtp_port"),
 			User:     CFG.Str("smtp_user"),
-			Password: CFG.Str("smtp_password"),
+			Password: CFG.Str("smtp_passwd"),
 			From:     CFG.Str("smtp_from"),
 		}
 
