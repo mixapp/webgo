@@ -52,11 +52,17 @@ var (
 func init() {
 
 	// Init config
+	{
+		cfg, err := config.NewConfig()
+		if err == nil {
+			err = cfg.ReadConfig()
+		}
 
-	if cfg, err := config.NewConfig(); err == nil {
-		CFG = cfg
-	} else {
-		panic(err.Error())
+		if err != nil {
+			panic(err.Error())
+		} else {
+			CFG = cfg
+		}
 	}
 
 	// Init logger
@@ -67,8 +73,8 @@ func init() {
 	LOGGER.RegisterProvider(cp)
 
 	LOGGER.AddLogProvider(cp.GetID())
-	LOGGER.AddErrorProvider(cp.GetID(), cp.GetID())
-	LOGGER.AddFatalProvider(cp.GetID(), cp.GetID())
+	LOGGER.AddErrorProvider(cp.GetID())
+	LOGGER.AddFatalProvider(cp.GetID())
 	LOGGER.AddDebugProvider(cp.GetID())
 
 	// Init aplication
@@ -391,7 +397,7 @@ func Mail(address string, subject string, tpl string, model interface{}) (err er
 			Host:     CFG.Str("smtp_host"),
 			Port:     CFG.Str("smtp_port"),
 			User:     CFG.Str("smtp_user"),
-			Password: CFG.Str("smtp_password"),
+			Password: CFG.Str("smtp_passwd"),
 			From:     CFG.Str("smtp_from"),
 		}
 
