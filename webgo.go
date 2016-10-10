@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	//"sync"
+	"github.com/IntelliQru/i18n"
 )
 
 type App struct {
@@ -33,7 +33,9 @@ type App struct {
 	modules       Modules
 	workDir       string
 	tmpDir        string
+	langDir       string
 	maxBodyLength int64
+	defaultLang string
 }
 
 const (
@@ -66,19 +68,19 @@ func init() {
 	}
 
 	// Init logger
+	{
+		cp := logger.ConsoleProvider{}
 
-	cp := logger.ConsoleProvider{}
+		LOGGER = logger.NewLogger()
+		LOGGER.RegisterProvider(cp)
 
-	LOGGER = logger.NewLogger()
-	LOGGER.RegisterProvider(cp)
+		LOGGER.AddLogProvider(cp.GetID())
+		LOGGER.AddErrorProvider(cp.GetID())
+		LOGGER.AddFatalProvider(cp.GetID())
+		LOGGER.AddDebugProvider(cp.GetID())
+	}
 
-	LOGGER.AddLogProvider(cp.GetID())
-	LOGGER.AddErrorProvider(cp.GetID())
-	LOGGER.AddFatalProvider(cp.GetID())
-	LOGGER.AddDebugProvider(cp.GetID())
-
-	// Init aplication
-
+	// Init application
 	templates := template.New("template")
 	filepath.Walk("templates", func(pathToFile string, info os.FileInfo, err error) error {
 
@@ -94,8 +96,14 @@ func init() {
 	app.templates = templates
 	app.staticDir = "public"
 	app.modules = Modules{}
+	app.defaultLang = "en-US"
+
+	if len(CFG.Str("defaultLang")) > 0 {
+		app.defaultLang = CFG.Str("defaultLang")
+	}
 
 	app.workDir, _ = os.Getwd()
+	app.langDir = path.Join(app.workDir, "i18n")
 	app.tmpDir = path.Join(app.workDir, "tmp")
 	app.maxBodyLength = 131072
 
@@ -106,6 +114,24 @@ func init() {
 			LOGGER.Fatal(err)
 		}
 	}
+
+	_, err = os.Stat(fmt.Sprint(app.langDir))
+	if os.IsNotExist(err) {
+		err = os.Mkdir(app.langDir, os.ModePerm)
+		if err != nil {
+			LOGGER.Fatal(err)
+		}
+	}
+
+	filepath.Walk("i18n", func(pathToFile string, info os.FileInfo, err error) error {
+		if path.Ext(pathToFile) == ".json" {
+			err := i18n.LoadTranslationFile(pathToFile)
+			if err != nil {
+				LOGGER.Error(err)
+			}
+		}
+		return nil
+	})
 }
 
 func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
@@ -257,6 +283,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Body:     make(map[string]interface{}),
 		Params:   route.Params,
 		Method:   method,
+		Lang:     app.defaultLang,
 	}
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
@@ -264,6 +291,30 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ctx.Request.ContentLength > 0 && (err != nil || route.Options.ContentType != ctx.ContentType) {
 		http.Error(w, "", 400)
 		return
+	}
+
+	// Определение языка
+	if route.Options.I18n {
+		acceptLang := ctx.Request.Header.Get("Accept-Language")
+		cookieLang := ctx.GetCookie("lang")
+
+		if len(cookieLang) != 0 && i18n.CheckLang(cookieLang) {
+			ctx.Lang = cookieLang
+		} else {
+			// Находим поддерживаемый язык из Accept-Language
+			start := 0
+			for end, chr := range acceptLang {
+				switch chr {
+				case ',', ';':
+					tag := strings.TrimSpace(acceptLang[start:end])
+					if i18n.CheckLang(tag) {
+						ctx.Lang = tag
+						break
+					}
+					start = end + 1
+				}
+			}
+		}
 	}
 
 	Controller, ok := vc.Interface().(ControllerInterface)
@@ -396,6 +447,10 @@ func GetModule(str string) ModuleInterface {
 	return app.modules[str]
 }
 
+func Tfunc(lang string) i18n.TFuncHandler {
+	return i18n.Tfunc(lang)
+}
+
 func Mail(address string, subject string, tpl string, model interface{}) (err error) {
 
 	if mailSmtpClient == nil {
@@ -444,7 +499,7 @@ func Run() {
 	}
 
 	address := fmt.Sprintf("%s:%d", host, port)
-	fmt.Println("WebGO start ", address)
+	LOGGER.Log("WebGO running", address)
 
 	server := http.Server{
 		Addr:         address,

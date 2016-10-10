@@ -34,6 +34,7 @@ type (
 		ContentType     string
 		BodyLength      int64
 		Timeout         time.Duration
+		I18n            bool
 	}
 )
 

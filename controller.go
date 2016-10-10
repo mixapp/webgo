@@ -3,17 +3,19 @@ package webgo
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
-	"strconv"
-	"os"
-	"net/http"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"path/filepath"
+	"strconv"
+	"github.com/IntelliQru/i18n"
 )
 
 type (
 	Controller struct {
 		Ctx *Context
+		T i18n.TFuncHandler
 	}
 	ControllerInterface interface {
 		Init(ctx *Context)
@@ -27,7 +29,7 @@ type (
 
 		Redirect(location string, code int)
 
-		SendFile (filepath string) (err error)
+		SendFile(filepath string) (err error)
 		Render(tpl_name string, data interface{})
 		Json(data interface{}, unicode bool)
 		Plain(data string)
@@ -48,6 +50,7 @@ func (c *Controller) Error504(tpl string) {
 
 func (c *Controller) Init(ctx *Context) {
 	c.Ctx = ctx
+	c.T = i18n.Tfunc(c.Ctx.Lang)
 }
 func (c Controller) Prepare() bool {
 	return true
@@ -73,7 +76,7 @@ func (c Controller) Redirect(location string, code int) {
 	c.SetHeader("Location", location)
 }
 
-func (c Controller) SendFile (path string) (err error) {
+func (c Controller) SendFile(path string) (err error) {
 	c.Ctx.isSendFile = true
 	file, err := os.Open(path)
 	defer file.Close()
@@ -135,6 +138,7 @@ func (c Controller) Json(data interface{}, unicode bool) {
 	}
 	c.Ctx.output = []byte(jsons)
 }
+
 func (c Controller) Plain(data string) {
 	c.Ctx.Response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	c.Ctx.output = []byte(data)
