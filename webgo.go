@@ -99,7 +99,13 @@ func init() {
 	app.tmpDir = path.Join(app.workDir, "tmp")
 	app.maxBodyLength = 131072
 
-	//TODO: Проверить папку tmp, создать если необходимо
+	_, err := os.Stat(app.tmpDir)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(app.tmpDir, os.ModePerm)
+		if err != nil {
+			LOGGER.Fatal(err)
+		}
+	}
 }
 
 func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
