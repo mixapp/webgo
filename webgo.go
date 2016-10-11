@@ -30,7 +30,6 @@ type App struct {
 	definitions   Definitions
 	templates     *template.Template
 	staticDir     string
-	modules       Modules
 	workDir       string
 	tmpDir        string
 	langDir       string
@@ -95,7 +94,6 @@ func init() {
 	app.definitions = Definitions{}
 	app.templates = templates
 	app.staticDir = "public"
-	app.modules = Modules{}
 	app.defaultLang = "en-US"
 
 	if len(CFG.Str("defaultLang")) > 0 {
@@ -424,9 +422,6 @@ func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
 		app.definitions.Register(name, plugin)
 	}
 }
-func RegisterModule(name string, module ModuleInterface) {
-	app.modules.RegisterModule(name, module)
-}
 func Get(url string, opts RouteOptions) {
 	app.router.addRoute("GET", url, &opts)
 }
@@ -441,10 +436,6 @@ func Delete(url string, opts RouteOptions) {
 }
 func Options(url string, opts RouteOptions) {
 	app.router.addRoute("OPTIONS", url, &opts)
-}
-
-func GetModule(str string) ModuleInterface {
-	return app.modules[str]
 }
 
 func Tfunc(lang string) i18n.TFuncHandler {
