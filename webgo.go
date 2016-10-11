@@ -238,7 +238,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var vc reflect.Value
 	var Action reflect.Value
-	var middlewareGroup string
 
 	method := r.Method
 	path := r.URL.Path
@@ -270,7 +269,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	vc = reflect.New(route.ControllerType)
 	Action = vc.MethodByName(route.Options.Action)
-	middlewareGroup = route.Options.MiddlewareGroup
 
 	var err error
 	ctx := Context{
@@ -344,8 +342,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Запуск цепочки middleware
-	if middlewareGroup != "" {
-		isNext := app.definitions.Run(middlewareGroup, &ctx)
+	fmt.Println(route.Options.MiddlewareGroup)
+	if len(route.Options.MiddlewareGroup) > 0 {
+		isNext := app.definitions.Run(route.Options.MiddlewareGroup, &ctx)
 		if !isNext {
 			return
 		}
