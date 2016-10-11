@@ -6,9 +6,6 @@ type Definitions struct {
 
 func (d *Definitions) Register(name string, plugin MiddlewareInterface) {
 
-	if d.Handlers == nil {
-		d.Handlers = make(map[string][]MiddlewareInterface)
-	}
 	if _, ok := d.Handlers[name]; !ok {
 		d.Handlers[name] = make([]MiddlewareInterface, 0)
 	}

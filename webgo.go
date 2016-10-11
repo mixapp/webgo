@@ -91,7 +91,9 @@ func init() {
 
 	app = App{}
 	app.router = Router{make(Routes)}
-	app.definitions = Definitions{}
+	app.definitions = Definitions{
+		Handlers: make(map[string][]MiddlewareInterface),
+	}
 	app.templates = templates
 	app.staticDir = "public"
 	app.defaultLang = "en-US"
