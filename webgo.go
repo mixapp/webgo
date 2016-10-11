@@ -342,12 +342,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Запуск цепочки middleware
-	fmt.Println(route.Options.MiddlewareGroup)
-	if len(route.Options.MiddlewareGroup) > 0 {
-		isNext := app.definitions.Run(route.Options.MiddlewareGroup, &ctx)
-		if !isNext {
-			return
-		}
+	if !app.definitions.Run(route.Options.MiddlewareGroup, &ctx) {
+		return
 	}
 
 	in := make([]reflect.Value, 0)

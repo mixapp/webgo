@@ -5,22 +5,33 @@ type Definitions struct {
 }
 
 func (d *Definitions) Register(name string, plugin MiddlewareInterface) {
-	if _, ok := d.Handlers[name]; !ok {
+
+	if d.Handlers == nil {
 		d.Handlers = make(map[string][]MiddlewareInterface)
+	}
+	if _, ok := d.Handlers[name]; !ok {
+		d.Handlers[name] = make([]MiddlewareInterface, 0)
 	}
 	d.Handlers[name] = append(d.Handlers[name], plugin)
 }
-func (m *Definitions) Run(name string, ctx *Context) bool {
-	isNext := true
+func (m *Definitions) Run(name string, ctx *Context) (bool) {
+	if len(name) == 0 {
+		return true
+	}
 
-	for _, handler := range m.Handlers[name] {
+	defs, ok := m.Handlers[name]
+	if !ok {
+		return false
+	}
+
+	for _, handler := range defs {
+		isNext := handler.Handler(ctx)
 		if !isNext {
 			return false
 		}
-		isNext = handler.Handler(ctx)
 	}
 
-	return isNext
+	return true
 }
 
 type Middleware struct{}
