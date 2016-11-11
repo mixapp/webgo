@@ -244,6 +244,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
 
+	if len(path) > 1 && strings.HasSuffix(path, "/") {
+		http.Redirect(w, r, path[:len(path)-1], 301)
+		return
+	}
+
+
 	// TODO как отдавать статику?
 	/*// Отдаем статику если был запрошен файл
 	ext := filepath.Ext(path)
@@ -251,11 +257,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, app.staticDir+filepath.Clean(path))
 		return
 	}*/
-
-	if len(path) > 1 && strings.HasSuffix(path, "/") {
-		http.Redirect(w, r, path[:len(path)-1], 301)
-		return
-	}
 
 	route := a.router.Match(method, path)
 	if route == nil {
@@ -372,46 +373,10 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	Controller.exec()
 
-	//select {
-	//case <-timeout:
-	//	ctx.close = true
-	//	w.WriteHeader(503)
-	//	w.Write([]byte(""))
-	//	return
-	//case <-cn.CloseNotify():
-	//	//TODO: НИХРЕНА НЕПОНЯТНО!!!
-	//	ctx.close = true
-	//	w.WriteHeader(503)
-	//	w.Write([]byte(""))
-	//	return
-	//case <-done:
-	//	// TODO: Обработать ошибки
-	//	if ctx.error != nil {
-	//		if ctx.code == 0 {
-	//			ctx.code = 500
-	//		}
-	//		ctx.Response.WriteHeader(ctx.code)
-	//		ctx.Response.Write(ctx.output)
-	//		return
-	//	}
-	//
-	//	// Проверяем редирект
-	//	if ctx.IsRedirect(){
-	//		ctx.Response.WriteHeader(ctx.code)
-	//		return
-	//	}
-	//
-	//	// Выводим данные
-	//	if ctx.code == 0 {
-	//		ctx.code = 200
-	//	}
-	//	ctx.Response.WriteHeader(ctx.code)
-	//	ctx.Response.Write(ctx.output)
-	//	return
-	//}
-
+	if strings.ToLower(r.Header.Get("Upgrade")) != "websocket" {
+		Controller.exec()
+	}
 }
 
 func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
