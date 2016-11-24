@@ -146,6 +146,7 @@ func (c Controller) Plain(data string) {
 
 func (c Controller) exec() {
 	if c.Ctx.error != nil {
+		LOGGER.Error(c.Ctx.error)
 		if c.Ctx.code == 0 {
 			c.Ctx.code = 500
 		}
