@@ -196,18 +196,21 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 			for _, hdr := range fheaders {
 				var infile multipart.File
 				if infile, err = hdr.Open(); nil != err {
+					LOGGER.Error(err)
 					errorCode = 500
 					return
 				}
 
 				var outfile *os.File
 				if outfile, err = os.Create(path.Join(app.tmpDir, hdr.Filename)); nil != err {
+					LOGGER.Error(err)
 					errorCode = 500
 					return
 				}
 				// 32K buffer copy
 				var written int64
 				if written, err = io.Copy(outfile, infile); nil != err {
+					LOGGER.Error(err)
 					errorCode = 500
 					return
 				}
