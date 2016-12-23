@@ -416,6 +416,7 @@ func Mail(address string, subject string, tpl string, model interface{}) (err er
 			User:     CFG.Str("smtp_user"),
 			Password: CFG.Str("smtp_passwd"),
 			From:     CFG.Str("smtp_from"),
+			TLS:	  CFG.Bool("smtp_tls"),
 		}
 
 		if len(mailSmtpClient.Host) == 0 {
