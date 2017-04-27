@@ -93,9 +93,9 @@ func (c Controller) SendFile(path string) (err error) {
 	FileStat, _ := file.Stat()
 	FileSize := strconv.FormatInt(FileStat.Size(), 10)
 
-	Filename := filepath.Base(path)
+	//Filename := filepath.Base(path)
 
-	c.Ctx.Response.Header().Set("Content-Disposition", "attachment; filename="+Filename)
+	//c.Ctx.Response.Header().Set("Content-Disposition", "attachment; filename="+Filename)
 	c.Ctx.Response.Header().Set("Content-Type", FileContentType)
 	c.Ctx.Response.Header().Set("Content-Length", FileSize)
 
