@@ -9,13 +9,14 @@ import (
 	"os"
 	//"path/filepath"
 	"strconv"
+
 	"github.com/IntelliQru/i18n"
 )
 
 type (
 	Controller struct {
 		Ctx *Context
-		T i18n.TFuncHandler
+		T   i18n.TFuncHandler
 	}
 	ControllerInterface interface {
 		Init(ctx *Context)
@@ -26,6 +27,7 @@ type (
 		GetHeader(key string) string
 		SetHeader(key string, val string)
 		SetStatusCode(code int)
+		SetOutput(data []byte)
 
 		Redirect(location string, code int)
 
@@ -70,7 +72,9 @@ func (c Controller) SetHeader(key string, val string) {
 func (c Controller) SetStatusCode(code int) {
 	c.Ctx.code = code
 }
-
+func (c Controller) SetOutput(data []byte) {
+	c.Ctx.output = data
+}
 func (c Controller) Redirect(location string, code int) {
 	c.SetStatusCode(code)
 	c.SetHeader("Location", location)
