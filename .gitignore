@@ -1,3 +1,6 @@
 .idea
 *.json
 *.sublime-workspace
+
+i18n
+tmp
