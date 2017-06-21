@@ -15,13 +15,14 @@ import (
 
 type Files []File
 type File struct {
-	FileName string
-	Size     int64
+	Path string
+	Name string
+	Size int64
 }
 
 func (f *Files) RemoveAll() (err error) {
 	for _, file := range *f {
-		e := os.Remove(app.tmpDir + "/" + file.FileName)
+		e := os.Remove(file.Path)
 		if e != nil && err == nil {
 			err = e
 		}
