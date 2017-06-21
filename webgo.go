@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
 	"github.com/IntelliQru/i18n"
 )
 
@@ -34,7 +35,7 @@ type App struct {
 	tmpDir        string
 	langDir       string
 	maxBodyLength int64
-	defaultLang string
+	defaultLang   string
 }
 
 const (
@@ -68,7 +69,7 @@ func init() {
 
 	// Init logger
 	{
-		cp := logger.ConsoleProvider{}
+		cp := new(logger.ConsoleProvider)
 
 		LOGGER = logger.NewLogger()
 		LOGGER.RegisterProvider(cp)
@@ -202,7 +203,7 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 				}
 
 				var outfile *os.File
-				if outfile, err = os.Create(path.Join(app.tmpDir, hdr.Filename)); nil != err {
+				if outfile, err = ioutil.TempFile(app.tmpDir, "tmp_"); err != nil {
 					LOGGER.Error(err)
 					errorCode = 500
 					return
@@ -215,7 +216,13 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 					return
 				}
 
-				ctx.Files = append(ctx.Files, File{FileName: hdr.Filename, Size: int64(written)})
+				tmpFile := File{
+					Path: outfile.Name(),
+					Name: hdr.Filename,
+					Size: int64(written),
+				}
+
+				ctx.Files = append(ctx.Files, tmpFile)
 			}
 		}
 
@@ -251,7 +258,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, path[:len(path)-1], 301)
 		return
 	}
-
 
 	// TODO как отдавать статику?
 	/*// Отдаем статику если был запрошен файл
@@ -375,7 +381,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			LOGGER.Error(err)
 		}
 	}
-
 
 	if strings.ToLower(r.Header.Get("Upgrade")) != "websocket" {
 		Controller.exec()
