@@ -5,12 +5,14 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
 type (
 	Router struct {
 		routes Routes
+		once   sync.Once
 	}
 	Routes map[string]map[string]Route
 	Route  struct {
@@ -38,17 +40,21 @@ type (
 	}
 )
 
-func (r *Router) Match(method string, url string) *Match {
-	var result *Match
+func (r *Router) Match(method string, url string) (result *Match) {
+	r.internalInit()
 
-	// Определем контроллер по прямому вхождению
-	if route, ok := r.routes[method][url]; ok {
-		result = &Match{make(Params), route.Pattern, route.ControllerType, route.Options}
-		return result
+	routing, ok := r.routes[method]
+	if !ok {
+		return
 	}
 
-	for _, route := range r.routes[method] {
+	// Определем контроллер по прямому вхождению
+	if route, ok := routing[url]; ok {
+		result = &Match{make(Params), route.Pattern, route.ControllerType, route.Options}
+		return
+	}
 
+	for _, route := range routing {
 		if !route.Regex.MatchString(url) {
 			continue
 		}
@@ -62,42 +68,82 @@ func (r *Router) Match(method string, url string) *Match {
 			}
 			params[route.Keys[i]] = match[i]
 		}
+
 		result = &Match{params, route.Pattern, route.ControllerType, route.Options}
+		return
 	}
 
-	return result
+	return
 }
-func (r *Router) addRoute(method string, path string, opts *RouteOptions) {
+
+var (
+	_RE_KEY_PATTEN = regexp.MustCompile(`:([A-Za-z0-9]+)`)
+	_PATH_REPLACER = strings.NewReplacer(`/`, `\/`, `.`, `\.`)
+)
+
+func (r *Router) Add(method string, path string, opts *RouteOptions) (err error) {
+	r.internalInit()
 	//c ControllerInterface, action string, middlewareGroup string
+
+	routing, ok := r.routes[method]
+	if !ok {
+		routing = make(map[string]Route)
+		r.routes[method] = routing
+	}
+
+	if _, ok := routing[path]; ok {
+		err = fmt.Errorf("Route path already use: '%s'->'%s'.", method, path)
+		return
+	}
 
 	reflectVal := reflect.ValueOf(opts.Controller)
 	val := reflectVal.MethodByName(opts.Action)
 
 	if !val.IsValid() {
-		LOGGER.Fatal("Action not found: " + opts.Action)
+		err = fmt.Errorf("Not found action for '%s'->'%s': '%s'.", method, path, opts.Action)
+		return
 	}
 
 	controller := reflect.Indirect(reflectVal).Type()
 
 	/* Добавляем роутер */
-	pattern, _ := regexp.Compile(":([A-Za-z0-9]+)")
-	matches := pattern.FindAllStringSubmatch(path, -1)
-	keys := []string{}
-
+	matches := _RE_KEY_PATTEN.FindAllStringSubmatch(path, -1)
+	keys := make([]string, len(matches))
 	for i := range matches {
-		keys = append(keys, matches[i][1])
+		keys[i] = matches[i][1]
 	}
 
-	str := fmt.Sprintf("^%s\\/?$", strings.Replace(path, "/", "\\/", -1))
-	str = pattern.ReplaceAllString(str, "([^\\/]+)")
-	str = strings.Replace(str, ".", "\\.", -1)
+	str := fmt.Sprintf("^%s\\/?$", _PATH_REPLACER.Replace(path))
+	str = _RE_KEY_PATTEN.ReplaceAllString(str, "([^\\/]+)")
 
-	regex, _ := regexp.Compile(str)
-
-	if r.routes[method] == nil {
-		r.routes[method] = make(map[string]Route)
+	regex, err := regexp.Compile(str)
+	if err != nil {
+		return err
 	}
 
-	r.routes[method][path] = Route{keys, regex, path, controller, opts}
+	routing[path] = Route{keys, regex, path, controller, opts}
+	return
+}
 
+func (r *Router) Copy(dest *Router) (err error) {
+	r.internalInit()
+
+	for method, srcRouting := range r.routes {
+		for routePath, routeDesc := range srcRouting {
+			err = dest.Add(method, routePath, routeDesc.Options)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	return
+}
+
+func (r *Router) internalInit() {
+	r.once.Do(func() {
+		if r.routes == nil {
+			r.routes = make(Routes)
+		}
+	})
 }
