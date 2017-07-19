@@ -80,8 +80,12 @@ func (c Controller) Redirect(location string, code int) {
 	c.SetHeader("Location", location)
 }
 
+
+
 func (c Controller) SendFile(path string) (err error) {
-	c.Ctx.isSendFile = true
+
+	c.CustomResponse()
+
 	file, err := os.Open(path)
 	defer file.Close()
 
@@ -107,6 +111,10 @@ func (c Controller) SendFile(path string) (err error) {
 	io.Copy(c.Ctx.Response, file)
 
 	return
+}
+
+func (c Controller) CustomResponse() {
+	c.Ctx.isCustomResponse = true
 }
 
 func (c Controller) Render(tpl_name string, data interface{}) {
@@ -170,7 +178,7 @@ func (c Controller) exec() {
 		c.Ctx.code = 200
 	}
 
-	if c.Ctx.isSendFile {
+	if c.Ctx.isCustomResponse {
 		return
 	}
 	c.Ctx.Response.WriteHeader(c.Ctx.code)

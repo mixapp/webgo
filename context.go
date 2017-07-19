@@ -47,7 +47,7 @@ type Context struct {
 	ContentType string
 	error       error
 	close       bool
-	isSendFile  bool // Это костыль, нужно переделать, чтобы не поломать АПИ текущих проектов
+	isCustomResponse  bool // Это костыль, нужно переделать, чтобы не поломать АПИ текущих проектов
 	Lang        string
 }
 
