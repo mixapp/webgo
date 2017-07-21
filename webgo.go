@@ -91,7 +91,7 @@ func init() {
 	})
 
 	app = App{}
-	app.router = Router{make(Routes)}
+	app.router = Router{}
 	app.definitions = Definitions{
 		Handlers: make(map[string][]MiddlewareInterface),
 	}
@@ -392,20 +392,49 @@ func RegisterMiddleware(name string, plugins ...MiddlewareInterface) {
 		app.definitions.Register(name, plugin)
 	}
 }
+
+func (a *App) Get(url string, opts RouteOptions) {
+	a.addRoute(http.MethodGet, url, &opts)
+}
+func (a *App) Post(url string, opts RouteOptions) {
+	a.addRoute(http.MethodPost, url, &opts)
+}
+func (a *App) Put(url string, opts RouteOptions) {
+	a.addRoute(http.MethodPut, url, &opts)
+}
+func (a *App) Delete(url string, opts RouteOptions) {
+	a.addRoute(http.MethodDelete, url, &opts)
+}
+func (a *App) Options(url string, opts RouteOptions) {
+	a.addRoute(http.MethodOptions, url, &opts)
+}
+func (a *App) addRoute(method, url string, opts *RouteOptions) {
+	err := a.router.Add(method, url, opts)
+	if err != nil {
+		LOGGER.Fatal(err)
+	}
+}
+func (a *App) AddRouting(r *Router) error {
+	return r.Copy(&a.router)
+}
+
+func AddRouting(r *Router) error {
+	return app.AddRouting(r)
+}
 func Get(url string, opts RouteOptions) {
-	app.router.addRoute("GET", url, &opts)
+	app.Get(url, opts)
 }
 func Post(url string, opts RouteOptions) {
-	app.router.addRoute("POST", url, &opts)
+	app.Post(url, opts)
 }
 func Put(url string, opts RouteOptions) {
-	app.router.addRoute("PUT", url, &opts)
+	app.Put(url, opts)
 }
 func Delete(url string, opts RouteOptions) {
-	app.router.addRoute("DELETE", url, &opts)
+	app.Delete(url, opts)
 }
 func Options(url string, opts RouteOptions) {
-	app.router.addRoute("OPTIONS", url, &opts)
+	app.Options(url, opts)
 }
 
 func Tfunc(lang string) i18n.TFuncHandler {
