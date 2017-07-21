@@ -51,6 +51,10 @@ type Context struct {
 	Lang        string
 }
 
+func (c *Context) GetBody() []byte {
+	return c._Body
+}
+
 func (c *Context) GetCookie(key string) string {
 	val, err := c.Request.Cookie(key)
 	if err != nil {
