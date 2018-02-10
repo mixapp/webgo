@@ -33,7 +33,7 @@ type (
 		MiddlewareGroup string
 		Controller      ControllerInterface
 		Action          string
-		ContentType     string
+		ContentType     string  //Deprecated
 		BodyLength      int64
 		Timeout         time.Duration
 		I18n            bool

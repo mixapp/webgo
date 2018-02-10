@@ -296,7 +296,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.ContentType = ctx.Request.Header.Get("Content-Type")
 	ctx.ContentType, _, err = mime.ParseMediaType(ctx.ContentType)
 
-	if ctx.Request.ContentLength > 0 && (err != nil || route.Options.ContentType != ctx.ContentType) {
+	if ctx.Request.ContentLength > 0 && err != nil {
 		http.Error(w, "", 400)
 		return
 	}
