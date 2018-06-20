@@ -2,7 +2,7 @@ package webgo
 
 import (
 	"github.com/IntelliQru/config"
-	"github.com/IntelliQru/logger"
+	"github.com/mixapp/logger"
 	"github.com/mixapp/mail"
 
 	"bytes"
