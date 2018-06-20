@@ -3,7 +3,7 @@ package webgo
 import (
 	"github.com/IntelliQru/config"
 	"github.com/IntelliQru/logger"
-	"github.com/IntelliQru/mail"
+	"github.com/mixapp/mail"
 
 	"bytes"
 	"encoding/json"
