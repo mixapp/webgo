@@ -185,7 +185,8 @@ func parseRequest(ctx *Context, limit int64) (errorCode int, err error) {
 			return
 		}
 
-		ctx._Body = []byte(ctx.Request.Form.Encode())
+		ctx._Body = []byte(ctx.Request.PostForm.Encode())
+		//ctx._Body = []byte(ctx.Request.Form.Encode())
 
 	case CT_MULTIPART:
 		err = ctx.Request.ParseMultipartForm(limit)
